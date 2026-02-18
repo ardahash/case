@@ -41,3 +41,4 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
     </MiniAppContext.Provider>
   );
 }
+

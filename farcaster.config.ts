@@ -1,6 +1,8 @@
 const ROOT_URL =
   process.env.NEXT_PUBLIC_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000');
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
 
 /**
  * MiniApp configuration object. Must follow the Farcaster MiniApp specification.
@@ -11,26 +13,23 @@ export const farcasterConfig = {
   accountAssociation: {
     header: "",
     payload: "",
-    signature: ""
+    signature: "",
   },
   miniapp: {
     version: "1",
-    name: "Cubey", 
-    subtitle: "Your AI Ad Companion", 
-    description: "Ads",
+    name: "Case",
+    subtitle: "Premium vault cases",
+    description: "Open premium cases and earn cbBTC rewards on Base.",
     screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
-    iconUrl: `${ROOT_URL}/blue-icon.png`,
-    splashImageUrl: `${ROOT_URL}/blue-hero.png`,
-    splashBackgroundColor: "#000000",
+    iconUrl: `${ROOT_URL}/icon.png`,
+    splashImageUrl: `${ROOT_URL}/case-placeholder.png`,
+    splashBackgroundColor: "#0b0f16",
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
-    primaryCategory: "social",
-    tags: ["marketing", "ads", "quickstart", "waitlist"],
-    heroImageUrl: `${ROOT_URL}/blue-hero.png`, 
-    tagline: "",
-    ogTitle: "",
-    ogDescription: "",
-    ogImageUrl: `${ROOT_URL}/blue-hero.png`,
+    primaryCategory: "games",
+    tags: ["base", "cases", "cbbtc", "vault"],
+    heroImageUrl: `${ROOT_URL}/case-placeholder.png`,
+    tagline: "Open the vault."
   },
 } as const;
 

@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Source_Code_Pro } from "next/font/google";
-import { SafeArea } from "./components/SafeArea";
-import { farcasterConfig } from "../farcaster.config";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { SafeArea } from "@/components/layout/SafeArea";
+import { Background } from "@/components/layout/Background";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { Toaster } from "sonner";
 import "./globals.css";
+import { farcasterConfig } from "../farcaster.config";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: farcasterConfig.miniapp.name,
-    description: farcasterConfig.miniapp.description,
+    title: "Case",
+    description: "Open premium cases on Base.",
     other: {
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
         imageUrl: farcasterConfig.miniapp.heroImageUrl,
         button: {
-          title: `Join the ${farcasterConfig.miniapp.name} Waitlist`,
+          title: "Open a Case",
           action: {
-            name: `Launch ${farcasterConfig.miniapp.name}`,
+            name: "Launch Case",
             type: "launch_frame",
           },
         },
@@ -25,13 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const sourceCodePro = Source_Code_Pro({
-  variable: "--font-source-code-pro",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
@@ -41,12 +45,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <Providers>
-      <html lang="en">
-        <body className={`${inter.variable} ${sourceCodePro.variable}`}>
-          <SafeArea>{children}</SafeArea>
-        </body>
-      </html>
-    </Providers>
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetBrainsMono.variable}`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/@coinbase/onchainkit@1.1.2/dist/assets/style.css"
+        />
+      </head>
+      <body>
+        <Providers>
+          <SafeArea className="min-h-screen">
+            <Background />
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+          </SafeArea>
+          <Toaster richColors position="top-right" />
+        </Providers>
+      </body>
+    </html>
   );
 }
+
