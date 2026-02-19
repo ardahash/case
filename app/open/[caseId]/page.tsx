@@ -43,6 +43,9 @@ export default function OpenCasePage() {
   const addOpening = useOpeningsStore((state) => state.addOpening);
   const { available, soldOut } = useCaseAvailability(caseType ?? undefined);
 
+  const usdcAddress = contractAddresses.usdc as `0x${string}`;
+  const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
+
   const [approveHash, setApproveHash] = useState<`0x${string}` | null>(null);
   const [purchaseHash, setPurchaseHash] = useState<`0x${string}` | null>(null);
   const [reward, setReward] = useState<RewardResponse | null>(null);
@@ -70,10 +73,10 @@ export default function OpenCasePage() {
   }, [caseType]);
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: contractAddresses.usdc,
+    address: usdcAddress,
     abi: erc20Abi,
     functionName: "allowance",
-    args: address ? [address, contractAddresses.caseSale] : undefined,
+    args: address ? [address, caseSaleAddress] : undefined,
     query: { enabled: Boolean(address) && !contractFlags.usingMockAddresses },
   });
 
@@ -121,7 +124,7 @@ export default function OpenCasePage() {
   }, [purchaseReceipt.isSuccess, purchaseReceipt.data, purchaseHash, mockPaymentConfirmed]);
 
   const { data: openingData } = useReadContract({
-    address: contractAddresses.caseSale,
+    address: caseSaleAddress,
     abi: caseSaleAbi,
     functionName: "getOpening",
     args: openingId ? [openingId] : undefined,
@@ -129,7 +132,7 @@ export default function OpenCasePage() {
   });
 
   const { data: btcUsdDecimals } = useReadContract({
-    address: contractAddresses.caseSale,
+    address: caseSaleAddress,
     abi: caseSaleAbi,
     functionName: "btcUsdDecimals",
     query: { enabled: !contractFlags.usingMockAddresses },
@@ -216,10 +219,10 @@ export default function OpenCasePage() {
     try {
       setIsBusy(true);
       const hash = await writeContractAsync({
-        address: contractAddresses.usdc,
+        address: usdcAddress,
         abi: erc20Abi,
         functionName: "approve",
-        args: [contractAddresses.caseSale, priceUnits],
+        args: [caseSaleAddress, priceUnits],
       });
       setApproveHash(hash);
       toast.message("Approval sent.");
@@ -257,7 +260,7 @@ export default function OpenCasePage() {
     try {
       setIsBusy(true);
       const hash = await writeContractAsync({
-        address: contractAddresses.caseSale,
+        address: caseSaleAddress,
         abi: caseSaleAbi,
         functionName: "purchaseCase",
         args: [BigInt(caseType.id)],
@@ -282,7 +285,7 @@ export default function OpenCasePage() {
     try {
       setIsBusy(true);
       await writeContractAsync({
-        address: contractAddresses.caseSale,
+        address: caseSaleAddress,
         abi: caseSaleAbi,
         functionName: "claimReward",
         args: [BigInt(reward.openingId)],
