@@ -35,6 +35,15 @@ type RewardResponse = {
   };
 };
 
+type StoredFlow = {
+  approveHash?: `0x${string}`;
+  purchaseHash?: `0x${string}`;
+  openingId?: string;
+  mockApproved?: boolean;
+  mockPaymentConfirmed?: boolean;
+  updatedAt?: number;
+};
+
 export default function OpenCasePage() {
   const params = useParams();
   const caseType = getCaseType(params.caseId as string);
@@ -55,6 +64,14 @@ export default function OpenCasePage() {
   const [mockApproved, setMockApproved] = useState(false);
   const [mockPaymentConfirmed, setMockPaymentConfirmed] = useState(false);
   const [openingId, setOpeningId] = useState<bigint | null>(null);
+  const [flowLoaded, setFlowLoaded] = useState(false);
+
+  const storageKey = useMemo(() => {
+    if (!caseType) return null;
+    if (!contractFlags.usingMockAddresses && !address) return null;
+    const owner = (address ?? "guest").toLowerCase();
+    return `case-open-flow:${caseType.id}:${owner}`;
+  }, [caseType, address]);
 
   const steps = useMemo(
     () => [
@@ -86,17 +103,21 @@ export default function OpenCasePage() {
 
   const approveReceipt = useWaitForTransactionReceipt({
     hash: approveHash ?? undefined,
-    query: { enabled: Boolean(approveHash) },
+    query: { enabled: Boolean(approveHash), refetchInterval: 4000, refetchOnWindowFocus: true },
   });
 
   const hasAllowance = allowance ? allowance >= priceUnits : false;
   const effectiveAllowance = contractFlags.usingMockAddresses
-    ? mockApproved
-    : hasAllowance || approveReceipt.isSuccess;
+    ? mockApproved || Boolean(purchaseHash)
+    : hasAllowance || approveReceipt.isSuccess || Boolean(purchaseHash);
 
   const purchaseReceipt = useWaitForTransactionReceipt({
     hash: purchaseHash ?? undefined,
-    query: { enabled: Boolean(purchaseHash) && !contractFlags.usingMockAddresses },
+    query: {
+      enabled: Boolean(purchaseHash) && !contractFlags.usingMockAddresses,
+      refetchInterval: 4000,
+      refetchOnWindowFocus: true,
+    },
   });
 
   useEffect(() => {
@@ -132,7 +153,11 @@ export default function OpenCasePage() {
     abi: caseSaleAbi,
     functionName: "getOpening",
     args: openingId ? [openingId] : undefined,
-    query: { enabled: Boolean(openingId) && !contractFlags.usingMockAddresses },
+    query: {
+      enabled: Boolean(openingId) && !contractFlags.usingMockAddresses,
+      refetchInterval: 6000,
+      refetchOnWindowFocus: true,
+    },
   });
 
   const { data: btcUsdDecimals } = useReadContract({
@@ -174,6 +199,80 @@ export default function OpenCasePage() {
   }, [openingData, openingId]);
 
   const alreadyClaimed = Boolean(openingData?.claimed);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    setFlowLoaded(false);
+    setApproveHash(null);
+    setPurchaseHash(null);
+    setOpeningId(null);
+    setMockApproved(false);
+    setMockPaymentConfirmed(false);
+    setReward(null);
+    setIsVideoDone(false);
+    setHasRecorded(false);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || flowLoaded) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        setFlowLoaded(true);
+        return;
+      }
+      const stored = JSON.parse(raw) as StoredFlow;
+      if (stored.approveHash) setApproveHash(stored.approveHash);
+      if (stored.purchaseHash) setPurchaseHash(stored.purchaseHash);
+      if (stored.openingId) setOpeningId(BigInt(stored.openingId));
+      if (stored.mockApproved) setMockApproved(true);
+      if (stored.mockPaymentConfirmed) setMockPaymentConfirmed(true);
+    } catch (error) {
+      console.warn("Failed to restore open flow state", error);
+    } finally {
+      setFlowLoaded(true);
+    }
+  }, [storageKey, flowLoaded]);
+
+  useEffect(() => {
+    if (!storageKey || !flowLoaded) return;
+    const stored: StoredFlow = {
+      approveHash: approveHash ?? undefined,
+      purchaseHash: purchaseHash ?? undefined,
+      openingId: openingId ? openingId.toString() : undefined,
+      mockApproved: mockApproved || undefined,
+      mockPaymentConfirmed: mockPaymentConfirmed || undefined,
+      updatedAt: Date.now(),
+    };
+
+    if (
+      !stored.approveHash &&
+      !stored.purchaseHash &&
+      !stored.openingId &&
+      !stored.mockApproved &&
+      !stored.mockPaymentConfirmed
+    ) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(stored));
+  }, [
+    storageKey,
+    flowLoaded,
+    approveHash,
+    purchaseHash,
+    openingId,
+    mockApproved,
+    mockPaymentConfirmed,
+  ]);
+
+  useEffect(() => {
+    if (!storageKey || !flowLoaded) return;
+    if (alreadyClaimed) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [alreadyClaimed, storageKey, flowLoaded]);
 
   useEffect(() => {
     if (reward && isVideoDone && !hasRecorded && purchaseHash && caseType) {

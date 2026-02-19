@@ -95,8 +95,13 @@ export function RewardHistory() {
         }
 
         const logs = logsAccumulator;
+        const typedLogs = logs as unknown as Array<{
+          args: { openingId?: bigint; caseTypeId?: bigint };
+          transactionHash: `0x${string}`;
+          blockNumber: bigint;
+        }>;
 
-        if (logs.length === 0) {
+        if (typedLogs.length === 0) {
           if (!cancelled) setItems([]);
           return;
         }
@@ -124,7 +129,7 @@ export function RewardHistory() {
           blocks.map((block) => [block.number, Number(block.timestamp) * 1000]),
         );
 
-        const safeLogs = logs.filter((log) => log.args.openingId !== undefined);
+        const safeLogs = typedLogs.filter((log) => log.args.openingId !== undefined);
 
         const multicallResults = await publicClient.multicall({
           allowFailure: true,
