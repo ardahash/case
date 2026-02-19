@@ -171,10 +171,11 @@ export default function BasedRoomPage() {
                 ref={videoRef}
                 className="h-72 w-full object-cover"
                 src={videoMode === "intro" ? "/basedroomvid.mp4" : "/basedroomvid2.mp4"}
-                muted
                 playsInline
                 autoPlay
                 loop={videoMode === "loop"}
+                muted={videoMode === "intro"}
+                controls={videoMode === "loop"}
                 onEnded={() => setVideoMode("loop")}
               />
             </div>
