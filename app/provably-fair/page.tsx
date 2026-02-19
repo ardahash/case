@@ -6,32 +6,33 @@ export default function ProvablyFairPage() {
       <div>
         <h1 className="text-3xl font-semibold">Provably Fair</h1>
         <p className="text-muted-foreground">
-          Case is built to be VRF-ready. The MVP uses server-side randomness with explicit commitments.
+          Case uses Chainlink VRF on Base for onchain randomness and reward assignment.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="glass">
           <CardHeader>
-            <CardTitle>Commit-Reveal (MVP)</CardTitle>
-            <CardDescription>Server-side randomness with immediate reveal.</CardDescription>
+            <CardTitle>Chainlink VRF (Live)</CardTitle>
+            <CardDescription>Onchain verifiable randomness.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
-            <span>1. Client submits purchase tx hash + client seed.</span>
-            <span>2. Server generates a seed and returns a commitment hash.</span>
-            <span>3. Server reveals the seed immediately for MVP transparency.</span>
-            <span>4. Reward is computed from the combined seeds.</span>
+            <span>1. Purchase calls CaseSale on Base and requests VRF.</span>
+            <span>2. Chainlink VRF fulfills the request with verifiable randomness.</span>
+            <span>3. CaseSale stores the reward amount onchain.</span>
+            <span>4. You claim the reward from the onchain stored amount.</span>
           </CardContent>
         </Card>
 
         <Card className="glass">
           <CardHeader>
-            <CardTitle>Chainlink VRF (Next)</CardTitle>
-            <CardDescription>Drop-in upgrade path.</CardDescription>
+            <CardTitle>How To Verify</CardTitle>
+            <CardDescription>Transparency on BaseScan.</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Replace the server RNG with Chainlink VRF and store proofs onchain. The API responses already
-            expose randomness metadata fields so UI does not change.
+          <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
+            <span>1. Confirm your CasePurchased transaction.</span>
+            <span>2. Watch for the VRF request fulfillment on CaseRewarded.</span>
+            <span>3. The stored reward is visible via getOpening(openingId).</span>
           </CardContent>
         </Card>
       </div>
@@ -39,20 +40,18 @@ export default function ProvablyFairPage() {
       <Card className="glass">
         <CardHeader>
           <CardTitle>Randomness Payload Example</CardTitle>
-          <CardDescription>Returned from /api/reward in MVP.</CardDescription>
+          <CardDescription>Derived from onchain opening data.</CardDescription>
         </CardHeader>
         <CardContent>
           <pre className="whitespace-pre-wrap rounded-2xl border border-border bg-muted/40 p-4 text-xs text-muted-foreground">
 {`{
-  "openingId": "1700000000000",
-  "rewardUsd": 4.73,
-  "rewardCbBtc": 0.000078,
+  "openingId": "12345",
+  "rewardCbBtc": 0.000081,
+  "rewardUsdEstimate": 4.91,
   "randomness": {
-    "source": "server-mvp",
-    "commitment": "0x...",
-    "serverSeed": "0x...",
-    "clientSeed": "0x...",
-    "revealedImmediately": true
+    "source": "chainlink-vrf",
+    "requestId": "0x...",
+    "fulfilledOnchain": true
   }
 }`}
           </pre>
