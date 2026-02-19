@@ -4,6 +4,11 @@ const ROOT_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : "http://localhost:3000");
 
+const IMAGE_URL = `${ROOT_URL}/caseapp1024x1024.png`;
+const HERO_URL = `${ROOT_URL}/caseapp1200x630.png`;
+const ICON_URL = `${ROOT_URL}/icon.png`;
+const SPLASH_URL = `${ROOT_URL}/splash.png`;
+
 /**
  * MiniApp configuration object. Must follow the Farcaster MiniApp specification.
  *
@@ -13,25 +18,32 @@ export const farcasterConfig = {
   accountAssociation: {
     header:
       "eyJmaWQiOjE4Mzc3MjksInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzOTlGNGFlRDZEMTVlMmNFNjlhMjA3Zjg3ZjcwRjVGRUIyOTY0ODdiIn0",
-    payload: "eyJkb21haW4iOiJjYXNlLmNhcmRzIn0",
+    payload: "eyJkb21haW4iOiJodHRwczovL3d3dy5jYXNlLmNhcmRzIn0",
     signature:
-      "gHgM2++BVA+4B8dHHznSqw31sIuXeJATwKRHA4KS6jFOjBwm/De7l0gJi8Q4u+kdHoISox8mUQdLeT7h+GUGBhs=",
+      "lr3dkZVta9pd7aDC9hqaCSK1/xO0xKnEU+ynafWOeWND8eRCBi7Cpn7I5NjjIQDzjKyea6vDy6AT67+4vGM/Ohs=",
   },
   miniapp: {
     version: "1",
     name: "Case",
-    subtitle: "Premium vault cases",
-    description: "Open cases and earn Bitcoin rewards on Base.",
+    subtitle: "Open cases and earn Bitcoin!",
+    description:
+      "Open cases and earn Bitcoin rewards on Base! Unlock your Based Room, and get 2 sats per day for free!",
     screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
-    iconUrl: `${ROOT_URL}/caseapp1024x1024.png`,
-    splashImageUrl: `${ROOT_URL}/caseapp200x200.png`,
-    splashBackgroundColor: "#0b0f16",
+    iconUrl: ICON_URL,
     homeUrl: ROOT_URL,
+    imageUrl: IMAGE_URL,
+    buttonTitle: "Open Case App",
+    splashImageUrl: SPLASH_URL,
+    splashBackgroundColor: "#0b0f16",
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "games",
-    tags: ["base", "cases", "cbbtc", "vault"],
-    heroImageUrl: `${ROOT_URL}/caseapp1200x630.png`,
-    tagline: "Open cases, get cbBTC."
+    tags: ["gaming", "bitcoin", "p2e", "cbbtc", "gatcha"],
+    heroImageUrl: HERO_URL,
+    tagline: "Open cases and earn Bitcoin",
+    ogTitle: "Case - Earn mystery Bitcoin",
+    ogDescription:
+      "Open cases and earn Bitcoin rewards on Base! Unlock your Based Room, and get 2 sats per day!",
+    ogImageUrl: IMAGE_URL,
+    castShareUrl: "https://farcaster.xyz/hashwizard/0x723ed624",
   },
 } as const;
-

@@ -100,6 +100,15 @@ async function main() {
   const xCaseStaking = await XCaseStaking.deploy(await xCase.getAddress(), rewardToken, { ...overrides, nonce: nextNonce() });
   await xCaseStaking.waitForDeployment();
 
+  const BasedRoomRewards = await ethers.getContractFactory("BasedRoomRewards");
+  const basedRoomRewards = await BasedRoomRewards.deploy(
+    cbbtc,
+    await xCase.getAddress(),
+    await xCaseStaking.getAddress(),
+    { ...overrides, nonce: nextNonce() },
+  );
+  await basedRoomRewards.waitForDeployment();
+
   const CaseSale = await ethers.getContractFactory("CaseSale");
   const caseSale = await (CaseSale as any).deploy(
     usdc,
@@ -133,6 +142,7 @@ async function main() {
     xCase: await xCase.getAddress(),
     caseStaking: await caseStaking.getAddress(),
     xCaseStaking: await xCaseStaking.getAddress(),
+    basedRoomRewards: await basedRoomRewards.getAddress(),
     caseSale: await caseSale.getAddress(),
   };
 
@@ -150,6 +160,7 @@ async function main() {
       NEXT_PUBLIC_XCASE_ADDRESS: deployment.xCase,
       NEXT_PUBLIC_XCASE_STAKING_ADDRESS: deployment.xCaseStaking,
       NEXT_PUBLIC_CASE_SALE_OR_MANAGER_ADDRESS: deployment.caseSale,
+      NEXT_PUBLIC_BASED_ROOM_REWARDS_ADDRESS: deployment.basedRoomRewards,
     });
     console.log(`Updated ${envPath}`);
   }

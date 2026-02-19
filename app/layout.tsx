@@ -16,9 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
-        imageUrl: farcasterConfig.miniapp.heroImageUrl,
+        imageUrl: farcasterConfig.miniapp.imageUrl || farcasterConfig.miniapp.heroImageUrl,
         button: {
-          title: "Open a Case",
+          title: farcasterConfig.miniapp.buttonTitle || "Open a Case",
           action: {
             name: "Launch Case",
             type: "launch_frame",
