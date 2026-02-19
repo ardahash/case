@@ -52,6 +52,7 @@ export function RewardHistory() {
   const [items, setItems] = useState<OnchainOpening[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [btcUsdDecimals, setBtcUsdDecimals] = useState(8);
 
   const usingLocal = contractFlags.usingMockAddresses || !publicClient;
 
@@ -111,10 +112,11 @@ export function RewardHistory() {
           abi: caseSaleAbi,
           functionName: "btcUsdDecimals",
         });
-        const btcUsdDecimals =
+        const nextDecimals =
           typeof decimalsResult === "number"
             ? decimalsResult
             : Number(decimalsResult ?? 8n);
+        setBtcUsdDecimals(nextDecimals);
 
         const blockNumbers = Array.from(
           new Set(logs.map((log) => log.blockNumber).filter(Boolean)),
@@ -156,8 +158,8 @@ export function RewardHistory() {
             ? Number(formatUnits(opening.rewardAmount, 8))
             : null;
           const priceFromFeed =
-            opening?.btcUsdPrice && btcUsdDecimals >= 0
-              ? Number(opening.btcUsdPrice) / 10 ** btcUsdDecimals
+            opening?.btcUsdPrice && nextDecimals >= 0
+              ? Number(opening.btcUsdPrice) / 10 ** nextDecimals
               : null;
           const rewardUsd =
             rewardCbBtc !== null && priceFromFeed
@@ -196,6 +198,71 @@ export function RewardHistory() {
       cancelled = true;
     };
   }, [address, publicClient, usingLocal]);
+
+  useEffect(() => {
+    if (!address || usingLocal || !publicClient || items.length === 0) return;
+    const pending = items.filter((item) => !item.rewarded || !item.claimed);
+    if (pending.length === 0) return;
+    let cancelled = false;
+
+    const refreshPending = async () => {
+      try {
+        const results = await publicClient.multicall({
+          allowFailure: true,
+          contracts: pending.map((item) => ({
+            address: contractAddresses.caseSale as `0x${string}`,
+            abi: caseSaleAbi,
+            functionName: "getOpening",
+            args: [BigInt(item.id)],
+          })),
+        });
+
+        if (cancelled) return;
+
+        setItems((prev) => {
+          const next = [...prev];
+          pending.forEach((item, index) => {
+            const result = results[index];
+            if (!result || result.status !== "success") return;
+            const opening = result.result as unknown as Opening;
+            if (!opening) return;
+
+            const rewardCbBtc = opening.rewarded
+              ? Number(formatUnits(opening.rewardAmount, 8))
+              : null;
+            const priceFromFeed =
+              opening.btcUsdPrice && btcUsdDecimals >= 0
+                ? Number(opening.btcUsdPrice) / 10 ** btcUsdDecimals
+                : null;
+            const rewardUsd =
+              rewardCbBtc !== null && priceFromFeed
+                ? rewardCbBtc * priceFromFeed
+                : null;
+
+            const targetIndex = next.findIndex((entry) => entry.id === item.id);
+            if (targetIndex === -1) return;
+            next[targetIndex] = {
+              ...next[targetIndex],
+              rewardCbBtc,
+              rewardUsd,
+              rewarded: Boolean(opening.rewarded),
+              claimed: Boolean(opening.claimed),
+            };
+          });
+          return next;
+        });
+      } catch (refreshError) {
+        console.error(refreshError);
+      }
+    };
+
+    void refreshPending();
+    const interval = setInterval(refreshPending, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [address, btcUsdDecimals, items, publicClient, usingLocal]);
 
   const localItems: OnchainOpening[] = useMemo(
     () =>
