@@ -42,6 +42,7 @@ const PURCHASE_EVENT = parseAbiItem(
 );
 
 const LOOKBACK_BLOCKS = 200_000n;
+const LOG_CHUNK_SIZE = 2000n;
 
 export function RewardHistory() {
   const { address } = useAccount();
@@ -70,13 +71,30 @@ export function RewardHistory() {
             ? latestBlock - LOOKBACK_BLOCKS
             : 0n;
 
-        const logs = await publicClient.getLogs({
-          address: contractAddresses.caseSale as `0x${string}`,
-          event: PURCHASE_EVENT,
-          args: { buyer: address as `0x${string}` },
-          fromBlock,
-          toBlock: latestBlock,
-        });
+        const logsAccumulator: Awaited<ReturnType<typeof publicClient.getLogs>> = [];
+
+        for (let start = fromBlock; start <= latestBlock; ) {
+          const end =
+            start + LOG_CHUNK_SIZE - 1n > latestBlock
+              ? latestBlock
+              : start + LOG_CHUNK_SIZE - 1n;
+          try {
+            const chunk = await publicClient.getLogs({
+              address: contractAddresses.caseSale as `0x${string}`,
+              event: PURCHASE_EVENT,
+              args: { buyer: address as `0x${string}` },
+              fromBlock: start,
+              toBlock: end,
+            });
+            logsAccumulator.push(...chunk);
+          } catch (chunkError) {
+            console.error(chunkError);
+            throw chunkError;
+          }
+          start = end + 1n;
+        }
+
+        const logs = logsAccumulator;
 
         if (logs.length === 0) {
           if (!cancelled) setItems([]);
