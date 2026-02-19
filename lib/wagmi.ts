@@ -6,7 +6,10 @@ import { activeChain, rpcUrl } from "./chains";
 const walletConnectProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
-const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+const appUrl =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
 const buildConfig = () => {
   const connectors = [
