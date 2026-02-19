@@ -28,7 +28,6 @@
           { name: "btcUsdPrice", type: "uint256" },
           { name: "rewarded", type: "bool" },
           { name: "claimed", type: "bool" },
-          { name: "requestId", type: "uint256" },
         ],
         name: "",
         type: "tuple",

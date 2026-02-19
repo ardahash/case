@@ -505,12 +505,7 @@ export default function OpenCasePage() {
 
             {paymentConfirmed && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                Payment confirmed. Your reward appears once Chainlink VRF fulfills.
-              </div>
-            )}
-            {paymentConfirmed && !reward && !contractFlags.usingMockAddresses && (
-              <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                Waiting for randomness fulfillment... this can take a minute.
+                Payment confirmed. Randomness is computed onchain during your purchase.
               </div>
             )}
           </CardContent>

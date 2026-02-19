@@ -32,7 +32,6 @@ export declare namespace CaseSale {
     btcUsdPrice: BigNumberish;
     rewarded: boolean;
     claimed: boolean;
-    requestId: BigNumberish;
   };
 
   export type OpeningStructOutput = [
@@ -42,8 +41,7 @@ export declare namespace CaseSale {
     reservedAmount: bigint,
     btcUsdPrice: bigint,
     rewarded: boolean,
-    claimed: boolean,
-    requestId: bigint
+    claimed: boolean
   ] & {
     buyer: string;
     caseTypeId: bigint;
@@ -52,7 +50,6 @@ export declare namespace CaseSale {
     btcUsdPrice: bigint;
     rewarded: boolean;
     claimed: boolean;
-    requestId: bigint;
   };
 }
 
@@ -61,52 +58,38 @@ export interface CaseSaleInterface extends Interface {
     nameOrSignature:
       | "CBBTC_SCALE"
       | "USD_SCALE"
-      | "acceptOwnership"
       | "availableCases"
       | "btcUsdDecimals"
       | "btcUsdFeed"
       | "btcUsdScale"
-      | "callbackGasLimit"
       | "caseTypes"
       | "cbBtc"
       | "claimReward"
       | "getOpening"
-      | "keyHash"
       | "maxPriceAge"
       | "nextOpeningId"
       | "openings"
       | "owner"
       | "purchaseCase"
-      | "rawFulfillRandomWords"
-      | "requestConfirmations"
-      | "requestToOpeningId"
+      | "renounceOwnership"
       | "reservedReward"
-      | "s_vrfCoordinator"
       | "setCaseType"
-      | "setCoordinator"
       | "setMaxPriceAge"
       | "setTreasury"
-      | "setVrfConfig"
-      | "subscriptionId"
       | "transferOwnership"
       | "treasury"
       | "usdc"
-      | "vrfCoordinator"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
       | "CaseClaimed"
       | "CasePurchased"
-      | "CaseRandomnessRequested"
       | "CaseRewarded"
       | "CaseTypeUpdated"
-      | "CoordinatorSet"
       | "MaxPriceAgeUpdated"
-      | "OwnershipTransferRequested"
       | "OwnershipTransferred"
       | "TreasuryUpdated"
-      | "VrfConfigUpdated"
   ): EventFragment;
 
   encodeFunctionData(
@@ -114,10 +97,6 @@ export interface CaseSaleInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "USD_SCALE", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "acceptOwnership",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "availableCases",
     values: [BigNumberish]
@@ -135,10 +114,6 @@ export interface CaseSaleInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "callbackGasLimit",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "caseTypes",
     values: [BigNumberish]
   ): string;
@@ -151,7 +126,6 @@ export interface CaseSaleInterface extends Interface {
     functionFragment: "getOpening",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "keyHash", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "maxPriceAge",
     values?: undefined
@@ -170,23 +144,11 @@ export interface CaseSaleInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "rawFulfillRandomWords",
-    values: [BigNumberish, BigNumberish[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "requestConfirmations",
+    functionFragment: "renounceOwnership",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "requestToOpeningId",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "reservedReward",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "s_vrfCoordinator",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -201,10 +163,6 @@ export interface CaseSaleInterface extends Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "setCoordinator",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setMaxPriceAge",
     values: [BigNumberish]
   ): string;
@@ -213,33 +171,17 @@ export interface CaseSaleInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "setVrfConfig",
-    values: [BytesLike, BigNumberish, BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "subscriptionId",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(functionFragment: "usdc", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "vrfCoordinator",
-    values?: undefined
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "CBBTC_SCALE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "USD_SCALE", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "acceptOwnership",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "availableCases",
     data: BytesLike
@@ -253,10 +195,6 @@ export interface CaseSaleInterface extends Interface {
     functionFragment: "btcUsdScale",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "callbackGasLimit",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "caseTypes", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cbBtc", data: BytesLike): Result;
   decodeFunctionResult(
@@ -264,7 +202,6 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getOpening", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "keyHash", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "maxPriceAge",
     data: BytesLike
@@ -280,15 +217,7 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "rawFulfillRandomWords",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "requestConfirmations",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "requestToOpeningId",
+    functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -296,15 +225,7 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "s_vrfCoordinator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setCaseType",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setCoordinator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -316,23 +237,11 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setVrfConfig",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "subscriptionId",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "usdc", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "vrfCoordinator",
-    data: BytesLike
-  ): Result;
 }
 
 export namespace CaseClaimedEvent {
@@ -375,19 +284,6 @@ export namespace CasePurchasedEvent {
     caseTypeId: bigint;
     openingId: bigint;
     priceUSDC: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace CaseRandomnessRequestedEvent {
-  export type InputTuple = [openingId: BigNumberish, requestId: BigNumberish];
-  export type OutputTuple = [openingId: bigint, requestId: bigint];
-  export interface OutputObject {
-    openingId: bigint;
-    requestId: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -442,18 +338,6 @@ export namespace CaseTypeUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace CoordinatorSetEvent {
-  export type InputTuple = [vrfCoordinator: AddressLike];
-  export type OutputTuple = [vrfCoordinator: string];
-  export interface OutputObject {
-    vrfCoordinator: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace MaxPriceAgeUpdatedEvent {
   export type InputTuple = [maxPriceAge: BigNumberish];
   export type OutputTuple = [maxPriceAge: bigint];
@@ -466,25 +350,12 @@ export namespace MaxPriceAgeUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace OwnershipTransferRequestedEvent {
-  export type InputTuple = [from: AddressLike, to: AddressLike];
-  export type OutputTuple = [from: string, to: string];
-  export interface OutputObject {
-    from: string;
-    to: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace OwnershipTransferredEvent {
-  export type InputTuple = [from: AddressLike, to: AddressLike];
-  export type OutputTuple = [from: string, to: string];
+  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
+  export type OutputTuple = [previousOwner: string, newOwner: string];
   export interface OutputObject {
-    from: string;
-    to: string;
+    previousOwner: string;
+    newOwner: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -497,31 +368,6 @@ export namespace TreasuryUpdatedEvent {
   export type OutputTuple = [treasury: string];
   export interface OutputObject {
     treasury: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace VrfConfigUpdatedEvent {
-  export type InputTuple = [
-    keyHash: BytesLike,
-    subscriptionId: BigNumberish,
-    requestConfirmations: BigNumberish,
-    callbackGasLimit: BigNumberish
-  ];
-  export type OutputTuple = [
-    keyHash: string,
-    subscriptionId: bigint,
-    requestConfirmations: bigint,
-    callbackGasLimit: bigint
-  ];
-  export interface OutputObject {
-    keyHash: string;
-    subscriptionId: bigint;
-    requestConfirmations: bigint;
-    callbackGasLimit: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -576,8 +422,6 @@ export interface CaseSale extends BaseContract {
 
   USD_SCALE: TypedContractMethod<[], [bigint], "view">;
 
-  acceptOwnership: TypedContractMethod<[], [void], "nonpayable">;
-
   availableCases: TypedContractMethod<
     [caseTypeId: BigNumberish],
     [bigint],
@@ -589,8 +433,6 @@ export interface CaseSale extends BaseContract {
   btcUsdFeed: TypedContractMethod<[], [string], "view">;
 
   btcUsdScale: TypedContractMethod<[], [bigint], "view">;
-
-  callbackGasLimit: TypedContractMethod<[], [bigint], "view">;
 
   caseTypes: TypedContractMethod<
     [arg0: BigNumberish],
@@ -620,8 +462,6 @@ export interface CaseSale extends BaseContract {
     "view"
   >;
 
-  keyHash: TypedContractMethod<[], [string], "view">;
-
   maxPriceAge: TypedContractMethod<[], [bigint], "view">;
 
   nextOpeningId: TypedContractMethod<[], [bigint], "view">;
@@ -629,7 +469,7 @@ export interface CaseSale extends BaseContract {
   openings: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, bigint, bigint, bigint, boolean, boolean, bigint] & {
+      [string, bigint, bigint, bigint, bigint, boolean, boolean] & {
         buyer: string;
         caseTypeId: bigint;
         rewardAmount: bigint;
@@ -637,7 +477,6 @@ export interface CaseSale extends BaseContract {
         btcUsdPrice: bigint;
         rewarded: boolean;
         claimed: boolean;
-        requestId: bigint;
       }
     ],
     "view"
@@ -651,23 +490,9 @@ export interface CaseSale extends BaseContract {
     "nonpayable"
   >;
 
-  rawFulfillRandomWords: TypedContractMethod<
-    [requestId: BigNumberish, randomWords: BigNumberish[]],
-    [void],
-    "nonpayable"
-  >;
-
-  requestConfirmations: TypedContractMethod<[], [bigint], "view">;
-
-  requestToOpeningId: TypedContractMethod<
-    [arg0: BigNumberish],
-    [bigint],
-    "view"
-  >;
+  renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   reservedReward: TypedContractMethod<[], [bigint], "view">;
-
-  s_vrfCoordinator: TypedContractMethod<[], [string], "view">;
 
   setCaseType: TypedContractMethod<
     [
@@ -678,12 +503,6 @@ export interface CaseSale extends BaseContract {
       positiveReturnBps: BigNumberish,
       enabled: boolean
     ],
-    [void],
-    "nonpayable"
-  >;
-
-  setCoordinator: TypedContractMethod<
-    [_vrfCoordinator: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -700,21 +519,8 @@ export interface CaseSale extends BaseContract {
     "nonpayable"
   >;
 
-  setVrfConfig: TypedContractMethod<
-    [
-      vrfKeyHash: BytesLike,
-      vrfSubscriptionId: BigNumberish,
-      vrfRequestConfirmations: BigNumberish,
-      vrfCallbackGasLimit: BigNumberish
-    ],
-    [void],
-    "nonpayable"
-  >;
-
-  subscriptionId: TypedContractMethod<[], [bigint], "view">;
-
   transferOwnership: TypedContractMethod<
-    [to: AddressLike],
+    [newOwner: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -722,8 +528,6 @@ export interface CaseSale extends BaseContract {
   treasury: TypedContractMethod<[], [string], "view">;
 
   usdc: TypedContractMethod<[], [string], "view">;
-
-  vrfCoordinator: TypedContractMethod<[], [string], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -736,9 +540,6 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "USD_SCALE"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "acceptOwnership"
-  ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
     nameOrSignature: "availableCases"
   ): TypedContractMethod<[caseTypeId: BigNumberish], [bigint], "view">;
   getFunction(
@@ -749,9 +550,6 @@ export interface CaseSale extends BaseContract {
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "btcUsdScale"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "callbackGasLimit"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "caseTypes"
@@ -782,9 +580,6 @@ export interface CaseSale extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "keyHash"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
     nameOrSignature: "maxPriceAge"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -795,7 +590,7 @@ export interface CaseSale extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, bigint, bigint, bigint, boolean, boolean, bigint] & {
+      [string, bigint, bigint, bigint, bigint, boolean, boolean] & {
         buyer: string;
         caseTypeId: bigint;
         rewardAmount: bigint;
@@ -803,7 +598,6 @@ export interface CaseSale extends BaseContract {
         btcUsdPrice: bigint;
         rewarded: boolean;
         claimed: boolean;
-        requestId: bigint;
       }
     ],
     "view"
@@ -815,24 +609,11 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "purchaseCase"
   ): TypedContractMethod<[caseTypeId: BigNumberish], [bigint], "nonpayable">;
   getFunction(
-    nameOrSignature: "rawFulfillRandomWords"
-  ): TypedContractMethod<
-    [requestId: BigNumberish, randomWords: BigNumberish[]],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "requestConfirmations"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "requestToOpeningId"
-  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+    nameOrSignature: "renounceOwnership"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "reservedReward"
   ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "s_vrfCoordinator"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "setCaseType"
   ): TypedContractMethod<
@@ -848,40 +629,19 @@ export interface CaseSale extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "setCoordinator"
-  ): TypedContractMethod<[_vrfCoordinator: AddressLike], [void], "nonpayable">;
-  getFunction(
     nameOrSignature: "setMaxPriceAge"
   ): TypedContractMethod<[newMaxPriceAge: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setTreasury"
   ): TypedContractMethod<[newTreasury: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "setVrfConfig"
-  ): TypedContractMethod<
-    [
-      vrfKeyHash: BytesLike,
-      vrfSubscriptionId: BigNumberish,
-      vrfRequestConfirmations: BigNumberish,
-      vrfCallbackGasLimit: BigNumberish
-    ],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "subscriptionId"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
     nameOrSignature: "transferOwnership"
-  ): TypedContractMethod<[to: AddressLike], [void], "nonpayable">;
+  ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "treasury"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "usdc"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "vrfCoordinator"
   ): TypedContractMethod<[], [string], "view">;
 
   getEvent(
@@ -899,13 +659,6 @@ export interface CaseSale extends BaseContract {
     CasePurchasedEvent.OutputObject
   >;
   getEvent(
-    key: "CaseRandomnessRequested"
-  ): TypedContractEvent<
-    CaseRandomnessRequestedEvent.InputTuple,
-    CaseRandomnessRequestedEvent.OutputTuple,
-    CaseRandomnessRequestedEvent.OutputObject
-  >;
-  getEvent(
     key: "CaseRewarded"
   ): TypedContractEvent<
     CaseRewardedEvent.InputTuple,
@@ -920,25 +673,11 @@ export interface CaseSale extends BaseContract {
     CaseTypeUpdatedEvent.OutputObject
   >;
   getEvent(
-    key: "CoordinatorSet"
-  ): TypedContractEvent<
-    CoordinatorSetEvent.InputTuple,
-    CoordinatorSetEvent.OutputTuple,
-    CoordinatorSetEvent.OutputObject
-  >;
-  getEvent(
     key: "MaxPriceAgeUpdated"
   ): TypedContractEvent<
     MaxPriceAgeUpdatedEvent.InputTuple,
     MaxPriceAgeUpdatedEvent.OutputTuple,
     MaxPriceAgeUpdatedEvent.OutputObject
-  >;
-  getEvent(
-    key: "OwnershipTransferRequested"
-  ): TypedContractEvent<
-    OwnershipTransferRequestedEvent.InputTuple,
-    OwnershipTransferRequestedEvent.OutputTuple,
-    OwnershipTransferRequestedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -953,13 +692,6 @@ export interface CaseSale extends BaseContract {
     TreasuryUpdatedEvent.InputTuple,
     TreasuryUpdatedEvent.OutputTuple,
     TreasuryUpdatedEvent.OutputObject
-  >;
-  getEvent(
-    key: "VrfConfigUpdated"
-  ): TypedContractEvent<
-    VrfConfigUpdatedEvent.InputTuple,
-    VrfConfigUpdatedEvent.OutputTuple,
-    VrfConfigUpdatedEvent.OutputObject
   >;
 
   filters: {
@@ -985,17 +717,6 @@ export interface CaseSale extends BaseContract {
       CasePurchasedEvent.OutputObject
     >;
 
-    "CaseRandomnessRequested(uint256,uint256)": TypedContractEvent<
-      CaseRandomnessRequestedEvent.InputTuple,
-      CaseRandomnessRequestedEvent.OutputTuple,
-      CaseRandomnessRequestedEvent.OutputObject
-    >;
-    CaseRandomnessRequested: TypedContractEvent<
-      CaseRandomnessRequestedEvent.InputTuple,
-      CaseRandomnessRequestedEvent.OutputTuple,
-      CaseRandomnessRequestedEvent.OutputObject
-    >;
-
     "CaseRewarded(uint256,uint256)": TypedContractEvent<
       CaseRewardedEvent.InputTuple,
       CaseRewardedEvent.OutputTuple,
@@ -1018,17 +739,6 @@ export interface CaseSale extends BaseContract {
       CaseTypeUpdatedEvent.OutputObject
     >;
 
-    "CoordinatorSet(address)": TypedContractEvent<
-      CoordinatorSetEvent.InputTuple,
-      CoordinatorSetEvent.OutputTuple,
-      CoordinatorSetEvent.OutputObject
-    >;
-    CoordinatorSet: TypedContractEvent<
-      CoordinatorSetEvent.InputTuple,
-      CoordinatorSetEvent.OutputTuple,
-      CoordinatorSetEvent.OutputObject
-    >;
-
     "MaxPriceAgeUpdated(uint256)": TypedContractEvent<
       MaxPriceAgeUpdatedEvent.InputTuple,
       MaxPriceAgeUpdatedEvent.OutputTuple,
@@ -1038,17 +748,6 @@ export interface CaseSale extends BaseContract {
       MaxPriceAgeUpdatedEvent.InputTuple,
       MaxPriceAgeUpdatedEvent.OutputTuple,
       MaxPriceAgeUpdatedEvent.OutputObject
-    >;
-
-    "OwnershipTransferRequested(address,address)": TypedContractEvent<
-      OwnershipTransferRequestedEvent.InputTuple,
-      OwnershipTransferRequestedEvent.OutputTuple,
-      OwnershipTransferRequestedEvent.OutputObject
-    >;
-    OwnershipTransferRequested: TypedContractEvent<
-      OwnershipTransferRequestedEvent.InputTuple,
-      OwnershipTransferRequestedEvent.OutputTuple,
-      OwnershipTransferRequestedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<
@@ -1071,17 +770,6 @@ export interface CaseSale extends BaseContract {
       TreasuryUpdatedEvent.InputTuple,
       TreasuryUpdatedEvent.OutputTuple,
       TreasuryUpdatedEvent.OutputObject
-    >;
-
-    "VrfConfigUpdated(bytes32,uint256,uint16,uint32)": TypedContractEvent<
-      VrfConfigUpdatedEvent.InputTuple,
-      VrfConfigUpdatedEvent.OutputTuple,
-      VrfConfigUpdatedEvent.OutputObject
-    >;
-    VrfConfigUpdated: TypedContractEvent<
-      VrfConfigUpdatedEvent.InputTuple,
-      VrfConfigUpdatedEvent.OutputTuple,
-      VrfConfigUpdatedEvent.OutputObject
     >;
   };
 }

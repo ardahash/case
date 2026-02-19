@@ -4,21 +4,12 @@ import hardhat from "hardhat";
 const { ethers, network } = hardhat;
 import "dotenv/config";
 
-const REQUIRED = [
-  "USDC_ADDRESS",
-  "CBBTC_ADDRESS",
-  "CASE_TOKEN_ADDRESS",
-  "BTC_USD_FEED",
-  "TREASURY_ADDRESS",
-  "VRF_COORDINATOR",
-  "VRF_KEY_HASH",
-  "VRF_SUBSCRIPTION_ID",
-];
+const REQUIRED = ["BTC_USD_FEED", "TREASURY_ADDRESS"];
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
+function requireEnv(name: string, fallback?: string): string {
+  const value = process.env[name] || (fallback ? process.env[fallback] : undefined);
   if (!value) {
-    throw new Error(`Missing env var: ${name}`);
+    throw new Error(`Missing env var: ${name}${fallback ? ` (or ${fallback})` : ""}`);
   }
   return value;
 }
@@ -81,19 +72,13 @@ async function getFeeOverrides() {
 }
 
 async function main() {
-  REQUIRED.forEach(requireEnv);
+  REQUIRED.forEach((name) => requireEnv(name));
 
-  const usdc = requireEnv("USDC_ADDRESS");
-  const cbbtc = requireEnv("CBBTC_ADDRESS");
-  const caseToken = requireEnv("CASE_TOKEN_ADDRESS");
+  const usdc = requireEnv("USDC_ADDRESS", "NEXT_PUBLIC_USDC_ADDRESS");
+  const cbbtc = requireEnv("CBBTC_ADDRESS", "NEXT_PUBLIC_CBBTC_ADDRESS");
+  const caseToken = requireEnv("CASE_TOKEN_ADDRESS", "NEXT_PUBLIC_CASE_TOKEN_ADDRESS");
   const btcUsdFeed = requireEnv("BTC_USD_FEED");
   const treasury = requireEnv("TREASURY_ADDRESS");
-  const vrfCoordinator = requireEnv("VRF_COORDINATOR");
-  const keyHash = requireEnv("VRF_KEY_HASH");
-  const subId = BigInt(requireEnv("VRF_SUBSCRIPTION_ID"));
-
-  const confirmations = Number(process.env.VRF_CONFIRMATIONS ?? 3);
-  const callbackGasLimit = Number(process.env.VRF_CALLBACK_GAS_LIMIT ?? 250000);
   const rewardToken = process.env.XCASE_REWARD_TOKEN || usdc;
 
   const [deployer] = await ethers.getSigners();
@@ -116,16 +101,11 @@ async function main() {
   await xCaseStaking.waitForDeployment();
 
   const CaseSale = await ethers.getContractFactory("CaseSale");
-  const caseSale = await CaseSale.deploy(
+  const caseSale = await (CaseSale as any).deploy(
     usdc,
     cbbtc,
     btcUsdFeed,
     treasury,
-    vrfCoordinator,
-    keyHash,
-    subId,
-    confirmations,
-    callbackGasLimit,
     { ...overrides, nonce: nextNonce() },
   );
   await caseSale.waitForDeployment();

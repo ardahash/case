@@ -34,7 +34,6 @@ type Opening = {
   btcUsdPrice: bigint;
   rewarded: boolean;
   claimed: boolean;
-  requestId: bigint;
 };
 
 const PURCHASE_EVENT = parseAbiItem(

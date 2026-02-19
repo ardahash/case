@@ -4,12 +4,10 @@ pragma solidity ^0.8.24;
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import { VRFConsumerBaseV2Plus } from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
-import { IVRFCoordinatorV2Plus } from "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFCoordinatorV2Plus.sol";
-import { VRFV2PlusClient } from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
+contract CaseSale is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
 
   uint256 public constant USD_SCALE = 1e6;
@@ -31,7 +29,6 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
     uint256 btcUsdPrice;
     bool rewarded;
     bool claimed;
-    uint256 requestId;
   }
 
   IERC20 public immutable usdc;
@@ -41,19 +38,12 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
   uint256 public immutable btcUsdScale;
   address public treasury;
 
-  IVRFCoordinatorV2Plus public immutable vrfCoordinator;
-  bytes32 public keyHash;
-  uint256 public subscriptionId;
-  uint16 public requestConfirmations;
-  uint32 public callbackGasLimit;
-
   uint256 public nextOpeningId;
   uint256 public reservedReward;
   uint256 public maxPriceAge;
 
   mapping(uint256 => CaseType) public caseTypes;
   mapping(uint256 => Opening) public openings;
-  mapping(uint256 => uint256) public requestToOpeningId;
 
   event CaseTypeUpdated(
     uint256 indexed caseTypeId,
@@ -64,24 +54,17 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
     bool enabled
   );
   event CasePurchased(address indexed buyer, uint256 indexed caseTypeId, uint256 indexed openingId, uint256 priceUSDC);
-  event CaseRandomnessRequested(uint256 indexed openingId, uint256 indexed requestId);
   event CaseRewarded(uint256 indexed openingId, uint256 rewardAmount);
   event CaseClaimed(uint256 indexed openingId, address indexed buyer, uint256 rewardAmount);
   event TreasuryUpdated(address indexed treasury);
-  event VrfConfigUpdated(bytes32 keyHash, uint256 subscriptionId, uint16 requestConfirmations, uint32 callbackGasLimit);
   event MaxPriceAgeUpdated(uint256 maxPriceAge);
 
   constructor(
     address usdcAddress,
     address cbBtcAddress,
     address btcUsdFeedAddress,
-    address treasuryAddress,
-    address vrfCoordinatorAddress,
-    bytes32 vrfKeyHash,
-    uint256 vrfSubscriptionId,
-    uint16 vrfRequestConfirmations,
-    uint32 vrfCallbackGasLimit
-  ) VRFConsumerBaseV2Plus(vrfCoordinatorAddress) {
+    address treasuryAddress
+  ) Ownable(msg.sender) {
     require(usdcAddress != address(0), "USDC address required");
     require(cbBtcAddress != address(0), "cbBTC address required");
     require(btcUsdFeedAddress != address(0), "BTC/USD feed required");
@@ -93,12 +76,6 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
     btcUsdDecimals = btcUsdFeed.decimals();
     btcUsdScale = 10 ** btcUsdDecimals;
     treasury = treasuryAddress;
-    vrfCoordinator = IVRFCoordinatorV2Plus(vrfCoordinatorAddress);
-
-    keyHash = vrfKeyHash;
-    subscriptionId = vrfSubscriptionId;
-    requestConfirmations = vrfRequestConfirmations;
-    callbackGasLimit = vrfCallbackGasLimit;
     maxPriceAge = 1 days;
   }
 
@@ -112,19 +89,6 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
     require(newMaxPriceAge > 0, "Max age required");
     maxPriceAge = newMaxPriceAge;
     emit MaxPriceAgeUpdated(newMaxPriceAge);
-  }
-
-  function setVrfConfig(
-    bytes32 vrfKeyHash,
-    uint256 vrfSubscriptionId,
-    uint16 vrfRequestConfirmations,
-    uint32 vrfCallbackGasLimit
-  ) external onlyOwner {
-    keyHash = vrfKeyHash;
-    subscriptionId = vrfSubscriptionId;
-    requestConfirmations = vrfRequestConfirmations;
-    callbackGasLimit = vrfCallbackGasLimit;
-    emit VrfConfigUpdated(vrfKeyHash, vrfSubscriptionId, vrfRequestConfirmations, vrfCallbackGasLimit);
   }
 
   function setCaseType(
@@ -189,38 +153,71 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
       reservedAmount: maxReward,
       btcUsdPrice: btcUsdPrice,
       rewarded: false,
-      claimed: false,
-      requestId: 0
+      claimed: false
     });
 
-    uint256 requestId = vrfCoordinator.requestRandomWords(
-      VRFV2PlusClient.RandomWordsRequest({
-        keyHash: keyHash,
-        subId: subscriptionId,
-        requestConfirmations: requestConfirmations,
-        callbackGasLimit: callbackGasLimit,
-        numWords: 1,
-        extraArgs: VRFV2PlusClient._argsToBytes(
-          VRFV2PlusClient.ExtraArgsV1({nativePayment: true})
-        )
-      })
-    );
-
-    openings[openingId].requestId = requestId;
-    requestToOpeningId[requestId] = openingId;
+    uint256 randomBase = _pseudoRandom(openingId, caseTypeId);
+    _finalizeReward(openingId, randomBase);
 
     emit CasePurchased(msg.sender, caseTypeId, openingId, caseType.priceUSDC);
-    emit CaseRandomnessRequested(openingId, requestId);
   }
 
-  function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
-    uint256 openingId = requestToOpeningId[requestId];
+  function claimReward(uint256 openingId) external nonReentrant {
+    Opening storage opening = openings[openingId];
+    require(opening.buyer == msg.sender, "Not opener");
+    require(opening.rewarded, "Reward not ready");
+    require(!opening.claimed, "Already claimed");
+
+    opening.claimed = true;
+    if (opening.reservedAmount > 0) {
+      reservedReward -= opening.reservedAmount;
+      opening.reservedAmount = 0;
+    }
+    cbBtc.safeTransfer(msg.sender, opening.rewardAmount);
+
+    emit CaseClaimed(openingId, msg.sender, opening.rewardAmount);
+  }
+
+  function getOpening(uint256 openingId) external view returns (Opening memory) {
+    return openings[openingId];
+  }
+
+  function _getBtcUsdPrice() internal view returns (uint256) {
+    (uint80 roundId, int256 answer, , uint256 updatedAt, uint80 answeredInRound) =
+      btcUsdFeed.latestRoundData();
+    require(answer > 0, "Bad price");
+    require(updatedAt != 0, "Bad price");
+    require(answeredInRound >= roundId, "Stale price");
+    require(block.timestamp - updatedAt <= maxPriceAge, "Stale price");
+    return uint256(answer);
+  }
+
+  function _usdToCbBtc(uint256 usdAmount, uint256 btcUsdPrice) internal view returns (uint256) {
+    uint256 numerator = usdAmount * CBBTC_SCALE * btcUsdScale;
+    return numerator / btcUsdPrice / USD_SCALE;
+  }
+
+  function _pseudoRandom(uint256 openingId, uint256 caseTypeId) internal view returns (uint256) {
+    return uint256(
+      keccak256(
+        abi.encodePacked(
+          block.prevrandao,
+          blockhash(block.number - 1),
+          msg.sender,
+          openingId,
+          caseTypeId,
+          address(this)
+        )
+      )
+    );
+  }
+
+  function _finalizeReward(uint256 openingId, uint256 randomBase) internal {
     Opening storage opening = openings[openingId];
     require(opening.buyer != address(0), "Opening not found");
     require(!opening.rewarded, "Already rewarded");
 
     CaseType memory caseType = caseTypes[opening.caseTypeId];
-    uint256 randomBase = randomWords[0];
     uint256 rewardAmount;
 
     if (caseType.positiveReturnBps > 0) {
@@ -258,41 +255,6 @@ contract CaseSale is VRFConsumerBaseV2Plus, ReentrancyGuard {
     opening.rewarded = true;
 
     emit CaseRewarded(openingId, rewardAmount);
-  }
-
-  function claimReward(uint256 openingId) external nonReentrant {
-    Opening storage opening = openings[openingId];
-    require(opening.buyer == msg.sender, "Not opener");
-    require(opening.rewarded, "Reward not ready");
-    require(!opening.claimed, "Already claimed");
-
-    opening.claimed = true;
-    if (opening.reservedAmount > 0) {
-      reservedReward -= opening.reservedAmount;
-      opening.reservedAmount = 0;
-    }
-    cbBtc.safeTransfer(msg.sender, opening.rewardAmount);
-
-    emit CaseClaimed(openingId, msg.sender, opening.rewardAmount);
-  }
-
-  function getOpening(uint256 openingId) external view returns (Opening memory) {
-    return openings[openingId];
-  }
-
-  function _getBtcUsdPrice() internal view returns (uint256) {
-    (uint80 roundId, int256 answer, , uint256 updatedAt, uint80 answeredInRound) =
-      btcUsdFeed.latestRoundData();
-    require(answer > 0, "Bad price");
-    require(updatedAt != 0, "Bad price");
-    require(answeredInRound >= roundId, "Stale price");
-    require(block.timestamp - updatedAt <= maxPriceAge, "Stale price");
-    return uint256(answer);
-  }
-
-  function _usdToCbBtc(uint256 usdAmount, uint256 btcUsdPrice) internal view returns (uint256) {
-    uint256 numerator = usdAmount * CBBTC_SCALE * btcUsdScale;
-    return numerator / btcUsdPrice / USD_SCALE;
   }
 
   function _randomReward(
