@@ -6,8 +6,13 @@ export const isTestnet =
 
 export const activeChain = isTestnet ? baseSepolia : base;
 
-export const rpcUrl =
-  process.env.NEXT_PUBLIC_RPC_URL || activeChain.rpcUrls.default.http[0];
+const rpcUrlEnv = process.env.NEXT_PUBLIC_RPC_URL || "";
+export const rpcUrls = rpcUrlEnv
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
+
+export const rpcUrl = rpcUrls[0] || activeChain.rpcUrls.default.http[0];
 
 export const chainLabel = isTestnet ? "Base Sepolia" : "Base";
 

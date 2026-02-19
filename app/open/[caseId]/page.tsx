@@ -77,18 +77,22 @@ export default function OpenCasePage() {
     abi: erc20Abi,
     functionName: "allowance",
     args: address ? [address, caseSaleAddress] : undefined,
-    query: { enabled: Boolean(address) && !contractFlags.usingMockAddresses },
+    query: {
+      enabled: Boolean(address) && !contractFlags.usingMockAddresses,
+      refetchInterval: 5000,
+      refetchOnWindowFocus: true,
+    },
   });
-
-  const hasAllowance = allowance ? allowance >= priceUnits : false;
-  const effectiveAllowance = contractFlags.usingMockAddresses
-    ? mockApproved
-    : hasAllowance;
 
   const approveReceipt = useWaitForTransactionReceipt({
     hash: approveHash ?? undefined,
     query: { enabled: Boolean(approveHash) },
   });
+
+  const hasAllowance = allowance ? allowance >= priceUnits : false;
+  const effectiveAllowance = contractFlags.usingMockAddresses
+    ? mockApproved
+    : hasAllowance || approveReceipt.isSuccess;
 
   const purchaseReceipt = useWaitForTransactionReceipt({
     hash: purchaseHash ?? undefined,

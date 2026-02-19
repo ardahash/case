@@ -158,7 +158,11 @@ export function RewardHistory() {
         if (!cancelled) setItems(nextItems);
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError("Failed to load onchain history.");
+        if (!cancelled) {
+          setError(
+            "Failed to load onchain history. The public Base RPC may be overloaded. Set NEXT_PUBLIC_RPC_URL to a dedicated provider (Alchemy, QuickNode, or Coinbase) and redeploy.",
+          );
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }

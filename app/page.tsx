@@ -54,7 +54,22 @@ export default function Home() {
             {heroInventory ? ` ${heroInventory}.` : ""}
           </div>
         </div>
+      </section>
 
+      <NetworkGuard />
+
+      <section className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Case Store</h2>
+          <Link href="/rewards" className="text-sm text-primary">
+            View rewards
+          </Link>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {caseTypes.map((caseType) => (
+            <CaseCard key={caseType.id} caseType={caseType} />
+          ))}
+        </div>
         <Card className="glass">
           <CardHeader>
             <CardTitle>Case-onomics</CardTitle>
@@ -87,22 +102,6 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
-      </section>
-
-      <NetworkGuard />
-
-      <section className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Case Store</h2>
-          <Link href="/rewards" className="text-sm text-primary">
-            View rewards
-          </Link>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {caseTypes.map((caseType) => (
-            <CaseCard key={caseType.id} caseType={caseType} />
-          ))}
-        </div>
       </section>
     </div>
   );

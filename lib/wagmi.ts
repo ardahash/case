@@ -1,7 +1,8 @@
 import { createConfig, http, type CreateConnectorFn } from "wagmi";
+import { fallback } from "viem";
 import { coinbaseWallet, metaMask, walletConnect } from "wagmi/connectors";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
-import { activeChain, rpcUrl } from "./chains";
+import { activeChain, rpcUrl, rpcUrls } from "./chains";
 
 const walletConnectProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
@@ -34,11 +35,14 @@ const buildConfig = () => {
       : []),
   ] as unknown as CreateConnectorFn[];
 
+  const transport =
+    rpcUrls.length > 1 ? fallback(rpcUrls.map((url) => http(url))) : http(rpcUrl);
+
   return createConfig({
     chains: [activeChain],
     transports: {
-      [activeChain.id]: http(rpcUrl),
-    } as Record<number, ReturnType<typeof http>>,
+      [activeChain.id]: transport,
+    } as Record<number, typeof transport>,
     connectors,
     ssr: true,
   });
