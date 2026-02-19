@@ -505,7 +505,12 @@ export default function OpenCasePage() {
 
             {paymentConfirmed && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                Payment confirmed. Watch the opening video to reveal your reward.
+                Payment confirmed. Your reward appears once Chainlink VRF fulfills.
+              </div>
+            )}
+            {paymentConfirmed && !reward && !contractFlags.usingMockAddresses && (
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Waiting for randomness fulfillment... this can take a minute.
               </div>
             )}
           </CardContent>
@@ -539,7 +544,7 @@ export default function OpenCasePage() {
                   src={caseType.media.video}
                   muted
                   playsInline
-                  controls={!paymentConfirmed}
+                  controls={paymentConfirmed}
                   autoPlay={paymentConfirmed}
                   onEnded={() => setIsVideoDone(true)}
                 />
@@ -548,18 +553,18 @@ export default function OpenCasePage() {
 
             {reward && !isVideoDone && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                Opening in progress. Reward reveals when the video ends.
+                Opening in progress. Your reward is ready below.
               </div>
             )}
 
-            {reward && isVideoDone && (
+            {reward && (
               <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background/70 p-4">
                 <div className="text-sm text-muted-foreground">Reward revealed</div>
                 <div className="text-2xl font-semibold">
                   {formatToken(reward.rewardCbBtc, "cbBTC", 8)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  ≈ {formatUsd(reward.rewardUsd)} @ ${reward.cbBtcUsdPrice.toFixed(2)} / cbBTC
+                  ~ {formatUsd(reward.rewardUsd)} @ ${reward.cbBtcUsdPrice.toFixed(2)} / cbBTC
                 </div>
                 <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                   <span>Randomness: {reward.randomness.source}</span>

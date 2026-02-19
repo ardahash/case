@@ -316,12 +316,17 @@ export function RewardHistory() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-medium">{opening.caseName}</div>
                   <div className="flex items-center gap-2">
-                    {opening.rewardUsd !== null ? (
+                    {opening.rewardCbBtc !== null ? (
                       <Badge variant="secondary">
-                        {formatUsd(opening.rewardUsd)}
+                        {formatToken(opening.rewardCbBtc, "cbBTC", 8)}
                       </Badge>
                     ) : (
                       <Badge variant="outline">Pending</Badge>
+                    )}
+                    {opening.rewardUsd !== null && (
+                      <Badge variant="outline">
+                        {formatUsd(opening.rewardUsd)}
+                      </Badge>
                     )}
                     {opening.claimed && <Badge>Claimed</Badge>}
                   </div>
