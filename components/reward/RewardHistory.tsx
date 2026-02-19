@@ -26,6 +26,17 @@ type OnchainOpening = {
   timestamp: number;
 };
 
+type Opening = {
+  buyer: `0x${string}`;
+  caseTypeId: bigint;
+  rewardAmount: bigint;
+  reservedAmount: bigint;
+  btcUsdPrice: bigint;
+  rewarded: boolean;
+  claimed: boolean;
+  requestId: bigint;
+};
+
 const PURCHASE_EVENT = parseAbiItem(
   "event CasePurchased(address indexed buyer, uint256 indexed caseTypeId, uint256 indexed openingId, uint256 priceUSDC)",
 );
@@ -95,9 +106,11 @@ export function RewardHistory() {
           blocks.map((block) => [block.number, Number(block.timestamp) * 1000]),
         );
 
+        const safeLogs = logs.filter((log) => log.args.openingId !== undefined);
+
         const multicallResults = await publicClient.multicall({
           allowFailure: true,
-          contracts: logs.map((log) => ({
+          contracts: safeLogs.map((log) => ({
             address: contractAddresses.caseSale as `0x${string}`,
             abi: caseSaleAbi,
             functionName: "getOpening",
@@ -105,15 +118,15 @@ export function RewardHistory() {
           })),
         });
 
-        const nextItems: OnchainOpening[] = logs.map((log, index) => {
-          const openingId = log.args.openingId;
+        const nextItems: OnchainOpening[] = safeLogs.map((log, index) => {
+          const openingId = log.args.openingId ?? 0n;
           const caseTypeId = Number(log.args.caseTypeId);
           const caseType = getCaseType(caseTypeId);
           const openingResult = multicallResults[index];
 
           const opening =
             openingResult && openingResult.status === "success"
-              ? openingResult.result
+              ? (openingResult.result as unknown as Opening)
               : null;
 
           const rewardCbBtc = opening?.rewarded

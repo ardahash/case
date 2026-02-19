@@ -12,7 +12,7 @@ import { contractAddresses, contractFlags, USDC_DECIMALS } from "@/lib/contracts
 import { getCaseType } from "@/config/caseTypes";
 import { formatToken, formatUsd } from "@/lib/format";
 import { getExplorerTxUrl } from "@/lib/explorer";
-import { Stepper } from "@/components/shared/Stepper";
+import { Stepper, type StepStatus } from "@/components/shared/Stepper";
 import { NetworkGuard } from "@/components/shared/NetworkGuard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -317,7 +317,7 @@ export default function OpenCasePage() {
     );
   }
 
-  const stepStates = [
+  const stepStates: { label: string; status: StepStatus }[] = [
     { label: steps[0], status: effectiveAllowance ? "done" : "active" },
     {
       label: steps[1],
@@ -340,7 +340,7 @@ export default function OpenCasePage() {
       label: steps[4],
       status: reward && isVideoDone ? "done" : reward ? "active" : "pending",
     },
-  ] as const;
+  ];
 
   const paymentConfirmed = purchaseReceipt.isSuccess || mockPaymentConfirmed;
 

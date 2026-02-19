@@ -12,6 +12,7 @@ export function DailyClaimCard() {
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const xCaseStakingAddress = contractAddresses.xCaseStaking as `0x${string}`;
 
   const cooldownLabel = useMemo(() => {
     if (!isConnected) return "Connect wallet";
@@ -32,7 +33,7 @@ export function DailyClaimCard() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.xCaseStaking,
+        address: xCaseStakingAddress,
         abi: stakingAbi,
         functionName: "claimDailyMiniCase",
       });

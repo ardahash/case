@@ -13,8 +13,10 @@ export function ModelViewer({ src, poster, className }: ModelViewerProps) {
     void import("@google/model-viewer");
   }, []);
 
+  const ModelViewerElement = "model-viewer" as any;
+
   return (
-    <model-viewer
+    <ModelViewerElement
       src={src}
       poster={poster}
       loading="lazy"

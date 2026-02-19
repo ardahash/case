@@ -17,9 +17,11 @@ export function XCaseStakePanel() {
   const { writeContractAsync } = useWriteContract();
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const xCaseTokenAddress = contractAddresses.xCaseToken as `0x${string}`;
+  const xCaseStakingAddress = contractAddresses.xCaseStaking as `0x${string}`;
 
   const { data: xCaseBalance } = useReadContract({
-    address: contractAddresses.xCaseToken,
+    address: xCaseTokenAddress,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -27,7 +29,7 @@ export function XCaseStakePanel() {
   });
 
   const { data: stakedBalance } = useReadContract({
-    address: contractAddresses.xCaseStaking,
+    address: xCaseStakingAddress,
     abi: xCaseStakingAbi,
     functionName: "stakedBalance",
     args: address ? [address] : undefined,
@@ -35,7 +37,7 @@ export function XCaseStakePanel() {
   });
 
   const { data: pendingRewards } = useReadContract({
-    address: contractAddresses.xCaseStaking,
+    address: xCaseStakingAddress,
     abi: xCaseStakingAbi,
     functionName: "pendingRewards",
     args: address ? [address] : undefined,
@@ -80,7 +82,7 @@ export function XCaseStakePanel() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.xCaseStaking,
+        address: xCaseStakingAddress,
         abi: xCaseStakingAbi,
         functionName: "stake",
         args: [parsedAmount],
@@ -108,7 +110,7 @@ export function XCaseStakePanel() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.xCaseStaking,
+        address: xCaseStakingAddress,
         abi: xCaseStakingAbi,
         functionName: "unstake",
         args: [parsedAmount],
@@ -131,7 +133,7 @@ export function XCaseStakePanel() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.xCaseStaking,
+        address: xCaseStakingAddress,
         abi: xCaseStakingAbi,
         functionName: "claim",
       });

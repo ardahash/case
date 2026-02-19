@@ -17,9 +17,12 @@ export function StakePanel() {
   const { writeContractAsync } = useWriteContract();
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const caseTokenAddress = contractAddresses.caseToken as `0x${string}`;
+  const xCaseTokenAddress = contractAddresses.xCaseToken as `0x${string}`;
+  const caseStakingAddress = contractAddresses.caseStaking as `0x${string}`;
 
   const { data: tokenBalance } = useReadContract({
-    address: contractAddresses.caseToken,
+    address: caseTokenAddress,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -27,7 +30,7 @@ export function StakePanel() {
   });
 
   const { data: xCaseBalance } = useReadContract({
-    address: contractAddresses.xCaseToken,
+    address: xCaseTokenAddress,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -67,7 +70,7 @@ export function StakePanel() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.caseStaking,
+        address: caseStakingAddress,
         abi: caseStakingAbi,
         functionName: "stake",
         args: [parsedAmount],
@@ -95,7 +98,7 @@ export function StakePanel() {
     try {
       setIsSubmitting(true);
       await writeContractAsync({
-        address: contractAddresses.caseStaking,
+        address: caseStakingAddress,
         abi: caseStakingAbi,
         functionName: "unstake",
         args: [parsedAmount],

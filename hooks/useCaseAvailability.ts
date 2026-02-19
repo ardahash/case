@@ -16,9 +16,10 @@ type CaseAvailability = {
 export function useCaseAvailability(caseType?: CaseType): CaseAvailability {
   const enabled =
     Boolean(caseType) && !contractFlags.usingMockAddresses;
+  const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
 
   const { data, isLoading } = useReadContract({
-    address: contractAddresses.caseSale,
+    address: caseSaleAddress,
     abi: caseSaleAbi,
     functionName: "availableCases",
     args: caseType ? [BigInt(caseType.id)] : undefined,
