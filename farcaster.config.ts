@@ -18,9 +18,9 @@ export const farcasterConfig = {
   accountAssociation: {
     header:
       "eyJmaWQiOjE4Mzc3MjksInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzOTlGNGFlRDZEMTVlMmNFNjlhMjA3Zjg3ZjcwRjVGRUIyOTY0ODdiIn0",
-    payload: "eyJkb21haW4iOiJodHRwczovL3d3dy5jYXNlLmNhcmRzIn0",
+    payload: "eyJkb21haW4iOiJ3d3cuY2FzZS5jYXJkcyJ9",
     signature:
-      "lr3dkZVta9pd7aDC9hqaCSK1/xO0xKnEU+ynafWOeWND8eRCBi7Cpn7I5NjjIQDzjKyea6vDy6AT67+4vGM/Ohs=",
+      "+eQsrL+ovUmtUWklrxNlwFbYWojhDKodlCJivQgc6fEYEeZMCO4rtkOKT9ZFUD/Wc/PKtIT0xUyBPhoD3gMQwhs=",
   },
   miniapp: {
     version: "1",
@@ -44,6 +44,6 @@ export const farcasterConfig = {
     ogDescription:
       "Open cases and earn Bitcoin rewards on Base! Unlock your Based Room, and get 2 sats per day!",
     ogImageUrl: IMAGE_URL,
-    castShareUrl: "https://farcaster.xyz/hashwizard/0x723ed624",
+    castShareUrl: "https://www.case.cards",
   },
 } as const;
