@@ -49,7 +49,7 @@ export function Header() {
       </div>
 
       <nav className="border-t border-border/40 bg-background/60 px-4 py-2 text-xs uppercase tracking-[0.3em] text-muted-foreground lg:hidden">
-        <div className="container flex gap-4 overflow-x-auto">
+        <div className="container flex gap-4 overflow-x-auto scrollbar-hidden">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href} className="shrink-0">
               {item.label}
@@ -60,4 +60,3 @@ export function Header() {
     </header>
   );
 }
-

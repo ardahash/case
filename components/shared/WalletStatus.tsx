@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Identity, Avatar, Name, Address } from "@coinbase/onchainkit/identity";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useIsMiniKit } from "@/hooks/useIsMiniKit";
 import { shortAddress } from "@/lib/format";
 
@@ -43,6 +44,11 @@ export function WalletStatus() {
     () => connectors.find((connector) => connector.id === "walletConnect"),
     [connectors],
   );
+  const availableConnectors = useMemo(
+    () =>
+      connectors.filter((connector) => connector.id !== "farcasterMiniApp"),
+    [connectors],
+  );
 
   const handleConnect = async () => {
     if (hasMetaMask && hasCoinbase) {
@@ -56,20 +62,29 @@ export function WalletStatus() {
         ? coinbaseConnector
         : walletConnectConnector;
 
-    if (!connector) return;
-    await connectAsync({ connector });
+    if (!connector) {
+      setShowPicker(true);
+      return;
+    }
+
+    try {
+      await connectAsync({ connector });
+    } catch (error) {
+      console.error(error);
+      toast.error("Wallet connection failed. Try a different wallet.");
+    }
   };
 
-  const handlePick = async (choice: "metamask" | "coinbase" | "walletconnect") => {
-    const connector =
-      choice === "metamask"
-        ? metaMaskConnector
-        : choice === "coinbase"
-          ? coinbaseConnector
-          : walletConnectConnector;
+  const handlePick = async (connectorId: string) => {
+    const connector = availableConnectors.find((item) => item.id === connectorId);
     if (!connector) return;
-    await connectAsync({ connector });
-    setShowPicker(false);
+    try {
+      await connectAsync({ connector });
+      setShowPicker(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Wallet connection failed. Try a different wallet.");
+    }
   };
 
   if (isMiniKit) {
@@ -108,21 +123,15 @@ export function WalletStatus() {
             Choose a wallet
           </div>
           <div className="flex flex-col gap-2">
-            {metaMaskConnector && (
-              <Button variant="secondary" onClick={() => handlePick("metamask")}>
-                MetaMask
+            {availableConnectors.map((connector) => (
+              <Button
+                key={connector.id}
+                variant="secondary"
+                onClick={() => handlePick(connector.id)}
+              >
+                {connector.name}
               </Button>
-            )}
-            {coinbaseConnector && (
-              <Button variant="secondary" onClick={() => handlePick("coinbase")}>
-                Coinbase Wallet
-              </Button>
-            )}
-            {walletConnectConnector && (
-              <Button variant="secondary" onClick={() => handlePick("walletconnect")}>
-                WalletConnect
-              </Button>
-            )}
+            ))}
           </div>
         </div>
       )}

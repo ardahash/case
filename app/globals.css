@@ -32,11 +32,22 @@
   html,
   body {
     height: 100%;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), ui-sans-serif, system-ui;
+  }
+
+  body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  body {
+    scrollbar-width: none;
   }
 
   a {
@@ -65,6 +76,15 @@
       radial-gradient(circle at 1px 1px, hsl(var(--border) / 0.6) 1px, transparent 0),
       radial-gradient(circle at 1px 1px, hsl(var(--border) / 0.3) 1px, transparent 0);
     background-size: 22px 22px, 44px 44px;
+  }
+
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
 }
 
