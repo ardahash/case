@@ -1,6 +1,7 @@
 ﻿import { StakePanel } from "@/components/stake/StakePanel";
 import { XCaseStakePanel } from "@/components/stake/XCaseStakePanel";
 import { DailyClaimCard } from "@/components/stake/DailyClaimCard";
+import { CaseSwap } from "@/components/stake/CaseSwap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function StakePage() {
@@ -17,6 +18,7 @@ export default function StakePage() {
         <div className="flex flex-col gap-6">
           <StakePanel />
           <XCaseStakePanel />
+          <CaseSwap />
         </div>
         <div className="flex flex-col gap-6">
           <DailyClaimCard />
