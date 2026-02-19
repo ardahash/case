@@ -31,7 +31,7 @@ export const farcasterConfig = {
     primaryCategory: "games",
     tags: ["base", "cases", "cbbtc", "vault"],
     heroImageUrl: `${ROOT_URL}/caseapp1200x630.png`,
-    tagline: "Open cases, get $cbBTC."
+    tagline: "Open cases, get cbBTC."
   },
 } as const;
 
