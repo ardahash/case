@@ -105,32 +105,120 @@ export default function BasedRoomPage() {
   }, [videoMode]);
 
   return (
-    <div className="container flex flex-col gap-8 py-10">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Badge variant="secondary">{isEligible ? "Unlocked" : "Locked"}</Badge>
-          <span>Passive bitcoin rewards</span>
-        </div>
-        <h1 className="text-3xl font-semibold">Based Room</h1>
-        <p className="text-muted-foreground">
-          Stake 10,000 CASE to unlock 2 sats per day. xCASE staked also counts.
-        </p>
+    <div className="relative min-h-screen w-full overflow-hidden">
+      <img
+        src="/basedroom2.png"
+        alt="Based Room background"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70" />
+
+      <div className="relative z-10 hidden h-full w-full md:block">
+        <svg
+          className="h-screen w-screen"
+          viewBox="0 0 1000 1000"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <foreignObject x="60" y="60" width="520" height="160">
+            <div className="text-white">
+              <div className="flex items-center gap-3 text-sm text-white/70">
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em]">
+                  {isEligible ? "Unlocked" : "Locked"}
+                </span>
+                <span>Passive bitcoin rewards</span>
+              </div>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight">Based Room</h1>
+              <p className="mt-2 text-white/70">
+                Stake 10,000 CASE to unlock 2 sats per day. xCASE staked also counts.
+              </p>
+            </div>
+          </foreignObject>
+
+          <foreignObject x="60" y="240" width="420" height="460">
+            <div style={{ pointerEvents: "auto" }}>
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle>Based Room Access</CardTitle>
+                  <CardDescription>Hit the threshold to unlock passive rewards.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>Staked (CASE + xCASE)</span>
+                      <span className="font-mono text-muted-foreground">{totalLabel} CASE</span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Includes {xCaseWalletLabel} xCASE in wallet and {xCaseStakedLabel} xCASE staked.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/stake" className={buttonVariants({ variant: "outline" })}>
+                      Go to Staking
+                    </Link>
+                    <Button
+                      onClick={handleClaim}
+                      disabled={!isConnected || !isEligible || isClaiming}
+                    >
+                      {isClaiming ? "Claiming..." : "Claim 2 sats"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </foreignObject>
+
+          <foreignObject x="520" y="200" width="420" height="520">
+            <div style={{ pointerEvents: "auto" }}>
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle>Based Room Feed</CardTitle>
+                  <CardDescription>
+                    Stake 10,000 CASE to unlock passive bitcoin rewards.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    Stake 10,000 CASE to unlock 2 sats per day and claim them whenever you want.
+                  </div>
+                  <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+                    <video
+                      key={videoMode}
+                      ref={videoRef}
+                      className="h-72 w-full object-cover"
+                      src={videoMode === "intro" ? "/basedroomvid.mp4" : "/basedroomvid2.mp4"}
+                      playsInline
+                      autoPlay
+                      loop={videoMode === "loop"}
+                      muted={videoMode === "intro"}
+                      controls={videoMode === "loop"}
+                      onEnded={() => setVideoMode("loop")}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </foreignObject>
+        </svg>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="relative z-10 flex min-h-screen flex-col gap-6 px-4 py-10 md:hidden">
+        <div className="flex flex-col gap-2 text-white">
+          <div className="flex items-center gap-3 text-sm text-white/70">
+            <Badge variant="secondary">{isEligible ? "Unlocked" : "Locked"}</Badge>
+            <span>Passive bitcoin rewards</span>
+          </div>
+          <h1 className="text-3xl font-semibold">Based Room</h1>
+          <p className="text-white/70">
+            Stake 10,000 CASE to unlock 2 sats per day. xCASE staked also counts.
+          </p>
+        </div>
+
         <Card className="glass">
           <CardHeader>
-            <CardTitle>Based Room Preview</CardTitle>
-            <CardDescription>Step inside once you hit the staking threshold.</CardDescription>
+            <CardTitle>Based Room Access</CardTitle>
+            <CardDescription>Hit the threshold to unlock passive rewards.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-2xl border border-border bg-muted">
-              <img
-                src="/basedroom2.png"
-                alt="Based Room preview"
-                className="h-64 w-full object-cover"
-              />
-            </div>
             <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm">
               <div className="flex items-center justify-between">
                 <span>Staked (CASE + xCASE)</span>
@@ -144,10 +232,7 @@ export default function BasedRoomPage() {
               <Link href="/stake" className={buttonVariants({ variant: "outline" })}>
                 Go to Staking
               </Link>
-              <Button
-                onClick={handleClaim}
-                disabled={!isConnected || !isEligible || isClaiming}
-              >
+              <Button onClick={handleClaim} disabled={!isConnected || !isEligible || isClaiming}>
                 {isClaiming ? "Claiming..." : "Claim 2 sats"}
               </Button>
             </div>

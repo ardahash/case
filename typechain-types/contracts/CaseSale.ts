@@ -65,6 +65,7 @@ export interface CaseSaleInterface extends Interface {
       | "caseTypes"
       | "cbBtc"
       | "claimReward"
+      | "emergencyWithdraw"
       | "getOpening"
       | "maxPriceAge"
       | "nextOpeningId"
@@ -87,6 +88,7 @@ export interface CaseSaleInterface extends Interface {
       | "CasePurchased"
       | "CaseRewarded"
       | "CaseTypeUpdated"
+      | "EmergencyWithdraw"
       | "MaxPriceAgeUpdated"
       | "OwnershipTransferred"
       | "TreasuryUpdated"
@@ -121,6 +123,10 @@ export interface CaseSaleInterface extends Interface {
   encodeFunctionData(
     functionFragment: "claimReward",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "emergencyWithdraw",
+    values: [AddressLike, AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getOpening",
@@ -199,6 +205,10 @@ export interface CaseSaleInterface extends Interface {
   decodeFunctionResult(functionFragment: "cbBtc", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimReward",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "emergencyWithdraw",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getOpening", data: BytesLike): Result;
@@ -338,6 +348,24 @@ export namespace CaseTypeUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace EmergencyWithdrawEvent {
+  export type InputTuple = [
+    token: AddressLike,
+    to: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [token: string, to: string, amount: bigint];
+  export interface OutputObject {
+    token: string;
+    to: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace MaxPriceAgeUpdatedEvent {
   export type InputTuple = [maxPriceAge: BigNumberish];
   export type OutputTuple = [maxPriceAge: bigint];
@@ -452,6 +480,12 @@ export interface CaseSale extends BaseContract {
 
   claimReward: TypedContractMethod<
     [openingId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  emergencyWithdraw: TypedContractMethod<
+    [token: AddressLike, to: AddressLike, amount: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -573,6 +607,13 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "claimReward"
   ): TypedContractMethod<[openingId: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "emergencyWithdraw"
+  ): TypedContractMethod<
+    [token: AddressLike, to: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "getOpening"
   ): TypedContractMethod<
     [openingId: BigNumberish],
@@ -673,6 +714,13 @@ export interface CaseSale extends BaseContract {
     CaseTypeUpdatedEvent.OutputObject
   >;
   getEvent(
+    key: "EmergencyWithdraw"
+  ): TypedContractEvent<
+    EmergencyWithdrawEvent.InputTuple,
+    EmergencyWithdrawEvent.OutputTuple,
+    EmergencyWithdrawEvent.OutputObject
+  >;
+  getEvent(
     key: "MaxPriceAgeUpdated"
   ): TypedContractEvent<
     MaxPriceAgeUpdatedEvent.InputTuple,
@@ -737,6 +785,17 @@ export interface CaseSale extends BaseContract {
       CaseTypeUpdatedEvent.InputTuple,
       CaseTypeUpdatedEvent.OutputTuple,
       CaseTypeUpdatedEvent.OutputObject
+    >;
+
+    "EmergencyWithdraw(address,address,uint256)": TypedContractEvent<
+      EmergencyWithdrawEvent.InputTuple,
+      EmergencyWithdrawEvent.OutputTuple,
+      EmergencyWithdrawEvent.OutputObject
+    >;
+    EmergencyWithdraw: TypedContractEvent<
+      EmergencyWithdrawEvent.InputTuple,
+      EmergencyWithdrawEvent.OutputTuple,
+      EmergencyWithdrawEvent.OutputObject
     >;
 
     "MaxPriceAgeUpdated(uint256)": TypedContractEvent<

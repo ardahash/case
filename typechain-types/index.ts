@@ -52,6 +52,10 @@ export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
 export type { ReentrancyGuard } from "./@openzeppelin/contracts/utils/ReentrancyGuard";
 export { ReentrancyGuard__factory } from "./factories/@openzeppelin/contracts/utils/ReentrancyGuard__factory";
+export type { BasedRoomRewards } from "./contracts/BasedRoomRewards.sol/BasedRoomRewards";
+export { BasedRoomRewards__factory } from "./factories/contracts/BasedRoomRewards.sol/BasedRoomRewards__factory";
+export type { IXCaseStaking } from "./contracts/BasedRoomRewards.sol/IXCaseStaking";
+export { IXCaseStaking__factory } from "./factories/contracts/BasedRoomRewards.sol/IXCaseStaking__factory";
 export type { CaseSale } from "./contracts/CaseSale";
 export { CaseSale__factory } from "./factories/contracts/CaseSale__factory";
 export type { CaseStaking } from "./contracts/CaseStaking";

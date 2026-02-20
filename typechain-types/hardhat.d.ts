@@ -102,6 +102,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrancyGuard__factory>;
     getContractFactory(
+      name: "BasedRoomRewards",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BasedRoomRewards__factory>;
+    getContractFactory(
+      name: "IXCaseStaking",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IXCaseStaking__factory>;
+    getContractFactory(
       name: "CaseSale",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.CaseSale__factory>;
@@ -229,6 +237,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ReentrancyGuard>;
     getContractAt(
+      name: "BasedRoomRewards",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BasedRoomRewards>;
+    getContractAt(
+      name: "IXCaseStaking",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IXCaseStaking>;
+    getContractAt(
       name: "CaseSale",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -338,6 +356,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
     deployContract(
+      name: "BasedRoomRewards",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BasedRoomRewards>;
+    deployContract(
+      name: "IXCaseStaking",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IXCaseStaking>;
+    deployContract(
       name: "CaseSale",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CaseSale>;
@@ -464,6 +490,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
+    deployContract(
+      name: "BasedRoomRewards",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BasedRoomRewards>;
+    deployContract(
+      name: "IXCaseStaking",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IXCaseStaking>;
     deployContract(
       name: "CaseSale",
       args: any[],

@@ -18,7 +18,7 @@ const CHAIN_ID = activeChain.id;
 const USDC_TOKEN: Token = {
   name: "USDC",
   symbol: "USDC",
-  address: contractAddresses.usdc,
+  address: contractAddresses.usdc as `0x${string}`,
   decimals: USDC_DECIMALS,
   chainId: CHAIN_ID,
   image:
@@ -28,7 +28,7 @@ const USDC_TOKEN: Token = {
 const CASE_TOKEN: Token = {
   name: "Case",
   symbol: "CASE",
-  address: contractAddresses.caseToken,
+  address: contractAddresses.caseToken as `0x${string}`,
   decimals: CASE_DECIMALS,
   chainId: CHAIN_ID,
   image: "/icon.png",
@@ -44,29 +44,30 @@ export function CaseSwap() {
         <CardDescription>Instantly swap between USDC and CASE on Base.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {contractFlags.usingMockAddresses && (
+        {contractFlags.usingMockAddresses ? (
           <div className="rounded-2xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
             Swap is disabled while mock token addresses are configured.
           </div>
+        ) : (
+          <Swap className="w-full max-w-none">
+            <SwapAmountInput
+              label="Sell"
+              swappableTokens={SWAPPABLE_TOKENS}
+              token={USDC_TOKEN}
+              type="from"
+            />
+            <SwapToggleButton />
+            <SwapAmountInput
+              label="Buy"
+              swappableTokens={SWAPPABLE_TOKENS}
+              token={CASE_TOKEN}
+              type="to"
+            />
+            <SwapButton />
+            <SwapMessage />
+            <SwapToast />
+          </Swap>
         )}
-        <Swap className="w-full max-w-none" disabled={contractFlags.usingMockAddresses}>
-          <SwapAmountInput
-            label="Sell"
-            swappableTokens={SWAPPABLE_TOKENS}
-            token={USDC_TOKEN}
-            type="from"
-          />
-          <SwapToggleButton />
-          <SwapAmountInput
-            label="Buy"
-            swappableTokens={SWAPPABLE_TOKENS}
-            token={CASE_TOKEN}
-            type="to"
-          />
-          <SwapButton />
-          <SwapMessage />
-          <SwapToast />
-        </Swap>
       </CardContent>
     </Card>
   );

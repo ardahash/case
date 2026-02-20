@@ -58,6 +58,7 @@ contract CaseSale is ReentrancyGuard, Ownable {
   event CaseClaimed(uint256 indexed openingId, address indexed buyer, uint256 rewardAmount);
   event TreasuryUpdated(address indexed treasury);
   event MaxPriceAgeUpdated(uint256 maxPriceAge);
+  event EmergencyWithdraw(address indexed token, address indexed to, uint256 amount);
 
   constructor(
     address usdcAddress,
@@ -176,6 +177,17 @@ contract CaseSale is ReentrancyGuard, Ownable {
     cbBtc.safeTransfer(msg.sender, opening.rewardAmount);
 
     emit CaseClaimed(openingId, msg.sender, opening.rewardAmount);
+  }
+
+  function emergencyWithdraw(address token, address to, uint256 amount) external onlyOwner {
+    require(token != address(0), "Token required");
+    address recipient = to == address(0) ? treasury : to;
+    require(recipient != address(0), "Recipient required");
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    uint256 withdrawAmount = amount == 0 ? balance : amount;
+    require(withdrawAmount <= balance, "Insufficient balance");
+    IERC20(token).safeTransfer(recipient, withdrawAmount);
+    emit EmergencyWithdraw(token, recipient, withdrawAmount);
   }
 
   function getOpening(uint256 openingId) external view returns (Opening memory) {
