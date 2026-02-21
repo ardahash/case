@@ -53,6 +53,9 @@ function isMockOrUnsetAddress(address: string): boolean {
 
 export const contractFlags = {
   usingMockAddresses: Object.values(contractAddresses).some(isMockOrUnsetAddress),
+  swapConfigured:
+    !isMockOrUnsetAddress(contractAddresses.usdc) &&
+    !isMockOrUnsetAddress(contractAddresses.caseToken),
   caseSaleConfigured:
     !isMockOrUnsetAddress(contractAddresses.usdc) &&
     !isMockOrUnsetAddress(contractAddresses.caseSale),

@@ -44,9 +44,10 @@ export function CaseSwap() {
         <CardDescription>Instantly swap between USDC and CASE on Base.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {contractFlags.usingMockAddresses ? (
+        {!contractFlags.swapConfigured ? (
           <div className="rounded-2xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-            Swap is disabled while mock token addresses are configured.
+            Swap is disabled until NEXT_PUBLIC_USDC_ADDRESS and NEXT_PUBLIC_CASE_TOKEN_ADDRESS
+            are configured.
           </div>
         ) : (
           <Swap className="w-full max-w-none">
