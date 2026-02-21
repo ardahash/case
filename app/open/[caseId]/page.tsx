@@ -68,7 +68,7 @@ export default function OpenCasePage() {
 
   const storageKey = useMemo(() => {
     if (!caseType) return null;
-    if (!contractFlags.usingMockAddresses && !address) return null;
+    if (contractFlags.caseSaleConfigured && !address) return null;
     const owner = (address ?? "guest").toLowerCase();
     return `case-open-flow:${caseType.id}:${owner}`;
   }, [caseType, address]);
@@ -95,7 +95,7 @@ export default function OpenCasePage() {
     functionName: "allowance",
     args: address ? [address, caseSaleAddress] : undefined,
     query: {
-      enabled: Boolean(address) && !contractFlags.usingMockAddresses,
+      enabled: Boolean(address) && contractFlags.caseSaleConfigured,
       refetchInterval: 5000,
       refetchOnWindowFocus: true,
     },
@@ -107,14 +107,14 @@ export default function OpenCasePage() {
   });
 
   const hasAllowance = allowance ? allowance >= priceUnits : false;
-  const effectiveAllowance = contractFlags.usingMockAddresses
+  const effectiveAllowance = !contractFlags.caseSaleConfigured
     ? mockApproved || Boolean(purchaseHash)
     : hasAllowance || approveReceipt.isSuccess || Boolean(purchaseHash);
 
   const purchaseReceipt = useWaitForTransactionReceipt({
     hash: purchaseHash ?? undefined,
     query: {
-      enabled: Boolean(purchaseHash) && !contractFlags.usingMockAddresses,
+      enabled: Boolean(purchaseHash) && contractFlags.caseSaleConfigured,
       refetchInterval: 4000,
       refetchOnWindowFocus: true,
     },
@@ -134,7 +134,7 @@ export default function OpenCasePage() {
       return;
     }
 
-    if (purchaseReceipt.isSuccess && purchaseReceipt.data && !contractFlags.usingMockAddresses) {
+    if (purchaseReceipt.isSuccess && purchaseReceipt.data && contractFlags.caseSaleConfigured) {
       const logs = parseEventLogs({
         abi: caseSaleAbi,
         logs: purchaseReceipt.data.logs,
@@ -154,7 +154,7 @@ export default function OpenCasePage() {
     functionName: "getOpening",
     args: openingId ? [openingId] : undefined,
     query: {
-      enabled: Boolean(openingId) && !contractFlags.usingMockAddresses,
+      enabled: Boolean(openingId) && contractFlags.caseSaleConfigured,
       refetchInterval: 6000,
       refetchOnWindowFocus: true,
     },
@@ -164,11 +164,11 @@ export default function OpenCasePage() {
     address: caseSaleAddress,
     abi: caseSaleAbi,
     functionName: "btcUsdDecimals",
-    query: { enabled: !contractFlags.usingMockAddresses },
+    query: { enabled: contractFlags.caseSaleConfigured },
   });
 
   useEffect(() => {
-    if (!openingData || contractFlags.usingMockAddresses) return;
+    if (!openingData || !contractFlags.caseSaleConfigured) return;
     if (!openingData.rewarded) return;
     const rewardCbBtc = Number(formatUnits(openingData.rewardAmount, 8));
     const decimals =
@@ -189,7 +189,7 @@ export default function OpenCasePage() {
       rewardCbBtc,
       cbBtcUsdPrice,
       randomness: {
-        source: "onchain-vrf",
+        source: "onchain-entropy",
         commitment: "n/a",
         serverSeed: "n/a",
         clientSeed: "n/a",
@@ -314,7 +314,7 @@ export default function OpenCasePage() {
 
   const handleApprove = async () => {
     if (!address || !caseType) return;
-    if (contractFlags.usingMockAddresses) {
+    if (!contractFlags.caseSaleConfigured) {
       setMockApproved(true);
       toast.message("Mock approval recorded.");
       return;
@@ -348,7 +348,7 @@ export default function OpenCasePage() {
       return;
     }
 
-    if (contractFlags.usingMockAddresses) {
+    if (!contractFlags.caseSaleConfigured) {
       const mockHash = (`0x${crypto.getRandomValues(new Uint8Array(32)).reduce(
         (acc, value) => acc + value.toString(16).padStart(2, "0"),
         "",
@@ -380,7 +380,7 @@ export default function OpenCasePage() {
 
   const handleWithdraw = async () => {
     if (!reward) return;
-    if (contractFlags.usingMockAddresses) {
+    if (!contractFlags.caseSaleConfigured) {
       toast.message("Withdraw is a TODO until contracts are deployed.");
       return;
     }
@@ -570,7 +570,7 @@ export default function OpenCasePage() {
                   <Button onClick={handleWithdraw} disabled={isBusy || alreadyClaimed}>
                     {alreadyClaimed ? "Claimed" : "Claim cbBTC"}
                   </Button>
-                  {purchaseHash && !contractFlags.usingMockAddresses && (
+                  {purchaseHash && contractFlags.caseSaleConfigured && (
                     <Link
                       href={getExplorerTxUrl(purchaseHash)}
                       className={buttonVariants({ variant: "outline" })}

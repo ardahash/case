@@ -53,7 +53,7 @@ export function RewardHistory() {
   const [error, setError] = useState<string | null>(null);
   const [btcUsdDecimals, setBtcUsdDecimals] = useState(8);
 
-  const usingLocal = contractFlags.usingMockAddresses || !publicClient;
+  const usingLocal = !contractFlags.caseSaleConfigured || !publicClient;
 
   useEffect(() => {
     if (!address || usingLocal) return;

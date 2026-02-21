@@ -43,14 +43,19 @@ const MOCK_ADDRESS_SET = new Set(
   Object.values(MOCK_BASE_SEPOLIA).map((address) => address.toLowerCase()),
 );
 
+function isMockOrUnsetAddress(address: string): boolean {
+  const normalized = address.toLowerCase();
+  return (
+    normalized === "0x0000000000000000000000000000000000000000" ||
+    MOCK_ADDRESS_SET.has(normalized)
+  );
+}
+
 export const contractFlags = {
-  usingMockAddresses: Object.values(contractAddresses).some((address) => {
-    const normalized = address.toLowerCase();
-    return (
-      normalized === "0x0000000000000000000000000000000000000000" ||
-      MOCK_ADDRESS_SET.has(normalized)
-    );
-  }),
+  usingMockAddresses: Object.values(contractAddresses).some(isMockOrUnsetAddress),
+  caseSaleConfigured:
+    !isMockOrUnsetAddress(contractAddresses.usdc) &&
+    !isMockOrUnsetAddress(contractAddresses.caseSale),
 };
 
 export const USDC_DECIMALS = 6;

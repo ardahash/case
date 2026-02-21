@@ -15,7 +15,7 @@ type CaseAvailability = {
 
 export function useCaseAvailability(caseType?: CaseType): CaseAvailability {
   const enabled =
-    Boolean(caseType) && !contractFlags.usingMockAddresses;
+    Boolean(caseType) && contractFlags.caseSaleConfigured;
   const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
 
   const { data, isLoading } = useReadContract({
