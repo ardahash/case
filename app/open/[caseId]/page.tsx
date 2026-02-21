@@ -532,7 +532,14 @@ export default function OpenCasePage() {
   ];
 
   return (
-    <div className="container flex flex-col gap-8 py-10">
+    <div className="relative min-h-screen overflow-hidden">
+      <img
+        src="/basedroom2.png"
+        alt="Based Room background"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70" />
+      <div className="relative z-10 container flex flex-col gap-8 py-10">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <Badge variant="secondary">Case #{caseType.id}</Badge>
@@ -670,6 +677,7 @@ export default function OpenCasePage() {
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
