@@ -598,7 +598,7 @@ export default function OpenCasePage() {
         <Card className="glass">
           <CardHeader>
             <CardTitle>Opening</CardTitle>
-            <CardDescription>Wobbling case during payment, opening video after confirmation.</CardDescription>
+            <CardDescription>Open now! Limited supply!</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="overflow-hidden rounded-2xl border border-border bg-muted">
