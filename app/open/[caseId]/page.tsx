@@ -36,6 +36,8 @@ type RewardResponse = {
 };
 
 type StoredFlow = {
+  version?: number;
+  mode?: "live" | "mock";
   approveHash?: `0x${string}`;
   purchaseHash?: `0x${string}`;
   openingId?: string;
@@ -43,6 +45,9 @@ type StoredFlow = {
   mockPaymentConfirmed?: boolean;
   updatedAt?: number;
 };
+
+const FLOW_STORAGE_VERSION = 2;
+const FLOW_STALE_MS = 30 * 60 * 1000;
 
 export default function OpenCasePage() {
   const params = useParams();
@@ -65,13 +70,14 @@ export default function OpenCasePage() {
   const [mockPaymentConfirmed, setMockPaymentConfirmed] = useState(false);
   const [openingId, setOpeningId] = useState<bigint | null>(null);
   const [flowLoaded, setFlowLoaded] = useState(false);
+  const flowMode = contractFlags.caseSaleConfigured ? "live" : "mock";
 
   const storageKey = useMemo(() => {
     if (!caseType) return null;
     if (contractFlags.caseSaleConfigured && !address) return null;
     const owner = (address ?? "guest").toLowerCase();
-    return `case-open-flow:${caseType.id}:${owner}`;
-  }, [caseType, address]);
+    return `case-open-flow:v${FLOW_STORAGE_VERSION}:${flowMode}:${caseType.id}:${owner}`;
+  }, [caseType, address, flowMode]);
 
   const steps = useMemo(
     () => [
@@ -109,7 +115,7 @@ export default function OpenCasePage() {
   const hasAllowance = allowance ? allowance >= priceUnits : false;
   const effectiveAllowance = !contractFlags.caseSaleConfigured
     ? mockApproved || Boolean(purchaseHash)
-    : hasAllowance || approveReceipt.isSuccess || Boolean(purchaseHash);
+    : hasAllowance || approveReceipt.isSuccess;
 
   const purchaseReceipt = useWaitForTransactionReceipt({
     hash: purchaseHash ?? undefined,
@@ -128,7 +134,7 @@ export default function OpenCasePage() {
   }, [approveReceipt.isSuccess, refetchAllowance]);
 
   useEffect(() => {
-    if (mockPaymentConfirmed && purchaseHash) {
+    if (!contractFlags.caseSaleConfigured && mockPaymentConfirmed && purchaseHash) {
       toast.success("Payment confirmed. Opening case...");
       void fetchReward(purchaseHash);
       return;
@@ -146,7 +152,13 @@ export default function OpenCasePage() {
         toast.success("Payment confirmed. Awaiting randomness...");
       }
     }
-  }, [purchaseReceipt.isSuccess, purchaseReceipt.data, purchaseHash, mockPaymentConfirmed]);
+  }, [
+    purchaseReceipt.isSuccess,
+    purchaseReceipt.data,
+    purchaseHash,
+    mockPaymentConfirmed,
+    contractFlags.caseSaleConfigured,
+  ]);
 
   const { data: openingData } = useReadContract({
     address: caseSaleAddress,
@@ -222,21 +234,37 @@ export default function OpenCasePage() {
         return;
       }
       const stored = JSON.parse(raw) as StoredFlow;
+
+      const isStale =
+        typeof stored.updatedAt === "number" &&
+        Date.now() - stored.updatedAt > FLOW_STALE_MS;
+      if (
+        stored.version !== FLOW_STORAGE_VERSION ||
+        stored.mode !== flowMode ||
+        isStale
+      ) {
+        localStorage.removeItem(storageKey);
+        setFlowLoaded(true);
+        return;
+      }
+
       if (stored.approveHash) setApproveHash(stored.approveHash);
       if (stored.purchaseHash) setPurchaseHash(stored.purchaseHash);
       if (stored.openingId) setOpeningId(BigInt(stored.openingId));
-      if (stored.mockApproved) setMockApproved(true);
-      if (stored.mockPaymentConfirmed) setMockPaymentConfirmed(true);
+      if (!contractFlags.caseSaleConfigured && stored.mockApproved) setMockApproved(true);
+      if (!contractFlags.caseSaleConfigured && stored.mockPaymentConfirmed) setMockPaymentConfirmed(true);
     } catch (error) {
       console.warn("Failed to restore open flow state", error);
     } finally {
       setFlowLoaded(true);
     }
-  }, [storageKey, flowLoaded]);
+  }, [storageKey, flowLoaded, flowMode, contractFlags.caseSaleConfigured]);
 
   useEffect(() => {
     if (!storageKey || !flowLoaded) return;
     const stored: StoredFlow = {
+      version: FLOW_STORAGE_VERSION,
+      mode: flowMode,
       approveHash: approveHash ?? undefined,
       purchaseHash: purchaseHash ?? undefined,
       openingId: openingId ? openingId.toString() : undefined,
@@ -265,6 +293,7 @@ export default function OpenCasePage() {
     openingId,
     mockApproved,
     mockPaymentConfirmed,
+    flowMode,
   ]);
 
   useEffect(() => {
@@ -420,6 +449,10 @@ export default function OpenCasePage() {
     );
   }
 
+  const paymentConfirmed = contractFlags.caseSaleConfigured
+    ? Boolean(openingId)
+    : mockPaymentConfirmed;
+
   const stepStates: { label: string; status: StepStatus }[] = [
     { label: steps[0], status: effectiveAllowance ? "done" : "active" },
     {
@@ -429,7 +462,7 @@ export default function OpenCasePage() {
     {
       label: steps[2],
       status:
-        purchaseReceipt.isSuccess || mockPaymentConfirmed
+        paymentConfirmed
           ? "done"
           : purchaseHash
             ? "active"
@@ -444,8 +477,6 @@ export default function OpenCasePage() {
       status: reward && isVideoDone ? "done" : reward ? "active" : "pending",
     },
   ];
-
-  const paymentConfirmed = purchaseReceipt.isSuccess || mockPaymentConfirmed;
 
   return (
     <div className="container flex flex-col gap-8 py-10">
