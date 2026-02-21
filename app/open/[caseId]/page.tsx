@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { formatUnits, parseEventLogs, parseUnits } from "viem";
 import { toast } from "sonner";
+import sdk from "@farcaster/miniapp-sdk";
 import { caseSaleAbi } from "@/lib/abis/caseSale";
 import { erc20Abi } from "@/lib/abis/erc20";
 import { contractAddresses, contractFlags, USDC_DECIMALS } from "@/lib/contracts";
@@ -70,6 +71,7 @@ export default function OpenCasePage() {
   const [mockPaymentConfirmed, setMockPaymentConfirmed] = useState(false);
   const [openingId, setOpeningId] = useState<bigint | null>(null);
   const [flowLoaded, setFlowLoaded] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const flowMode = contractFlags.caseSaleConfigured ? "live" : "mock";
 
   const storageKey = useMemo(() => {
@@ -431,6 +433,57 @@ export default function OpenCasePage() {
     }
   };
 
+  const handleShareReward = async () => {
+    if (!reward || !caseType) return;
+    const shareUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/open/${caseType.id}`
+        : process.env.NEXT_PUBLIC_URL || "";
+    const shareText = `I opened ${caseType.name} and got ${formatToken(reward.rewardCbBtc, "cbBTC", 8)} (~${formatUsd(reward.rewardUsd)}).`;
+
+    try {
+      setIsSharing(true);
+      const inMiniApp = await sdk.isInMiniApp();
+      if (inMiniApp) {
+        await sdk.actions.composeCast({
+          text: shareText,
+          embeds: shareUrl ? [shareUrl] : undefined,
+        });
+        toast.success("Share composer opened.");
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSharing(false);
+    }
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: "Case Reward",
+          text: shareText,
+          url: shareUrl || undefined,
+        });
+        return;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`.trim());
+        toast.success("Share text copied.");
+        return;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    toast.error("Share is not available on this device.");
+  };
+
   if (!caseType) {
     return (
       <div className="container py-10">
@@ -600,6 +653,9 @@ export default function OpenCasePage() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button onClick={handleWithdraw} disabled={isBusy || alreadyClaimed}>
                     {alreadyClaimed ? "Claimed" : "Claim cbBTC"}
+                  </Button>
+                  <Button onClick={handleShareReward} variant="outline" disabled={isSharing}>
+                    {isSharing ? "Opening Share..." : "Share Reward"}
                   </Button>
                   {purchaseHash && contractFlags.caseSaleConfigured && (
                     <Link
