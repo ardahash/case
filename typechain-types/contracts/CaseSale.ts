@@ -27,6 +27,7 @@ export declare namespace CaseSale {
   export type OpeningStruct = {
     buyer: AddressLike;
     caseTypeId: BigNumberish;
+    rewardToken: AddressLike;
     rewardAmount: BigNumberish;
     reservedAmount: BigNumberish;
     btcUsdPrice: BigNumberish;
@@ -37,6 +38,7 @@ export declare namespace CaseSale {
   export type OpeningStructOutput = [
     buyer: string,
     caseTypeId: bigint,
+    rewardToken: string,
     rewardAmount: bigint,
     reservedAmount: bigint,
     btcUsdPrice: bigint,
@@ -45,6 +47,7 @@ export declare namespace CaseSale {
   ] & {
     buyer: string;
     caseTypeId: bigint;
+    rewardToken: string;
     rewardAmount: bigint;
     reservedAmount: bigint;
     btcUsdPrice: bigint;
@@ -62,19 +65,31 @@ export interface CaseSaleInterface extends Interface {
       | "btcUsdDecimals"
       | "btcUsdFeed"
       | "btcUsdScale"
+      | "caseToken"
       | "caseTypes"
       | "cbBtc"
       | "claimReward"
+      | "dailyCaseCaseBps"
+      | "dailyCaseCaseMax"
+      | "dailyCaseCaseMin"
+      | "dailyCaseCbBtcMax"
+      | "dailyCaseCbBtcMin"
+      | "dailyCaseTypeId"
+      | "dailyCooldown"
       | "emergencyWithdraw"
       | "getOpening"
+      | "lastDailyOpen"
       | "maxPriceAge"
       | "nextOpeningId"
       | "openings"
       | "owner"
       | "purchaseCase"
       | "renounceOwnership"
-      | "reservedReward"
+      | "reservedCaseReward"
+      | "reservedCbBtcReward"
       | "setCaseType"
+      | "setDailyCase"
+      | "setDailyCaseRewards"
       | "setMaxPriceAge"
       | "setTreasury"
       | "transferOwnership"
@@ -88,6 +103,8 @@ export interface CaseSaleInterface extends Interface {
       | "CasePurchased"
       | "CaseRewarded"
       | "CaseTypeUpdated"
+      | "DailyCaseConfigured"
+      | "DailyCaseRewardsUpdated"
       | "EmergencyWithdraw"
       | "MaxPriceAgeUpdated"
       | "OwnershipTransferred"
@@ -115,6 +132,7 @@ export interface CaseSaleInterface extends Interface {
     functionFragment: "btcUsdScale",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "caseToken", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "caseTypes",
     values: [BigNumberish]
@@ -125,12 +143,44 @@ export interface CaseSaleInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "dailyCaseCaseBps",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCaseCaseMax",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCaseCaseMin",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCaseCbBtcMax",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCaseCbBtcMin",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCaseTypeId",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "dailyCooldown",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "emergencyWithdraw",
     values: [AddressLike, AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getOpening",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "lastDailyOpen",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "maxPriceAge",
@@ -154,7 +204,11 @@ export interface CaseSaleInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "reservedReward",
+    functionFragment: "reservedCaseReward",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "reservedCbBtcReward",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -166,6 +220,20 @@ export interface CaseSaleInterface extends Interface {
       BigNumberish,
       BigNumberish,
       boolean
+    ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setDailyCase",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setDailyCaseRewards",
+    values: [
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish
     ]
   ): string;
   encodeFunctionData(
@@ -201,6 +269,7 @@ export interface CaseSaleInterface extends Interface {
     functionFragment: "btcUsdScale",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "caseToken", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "caseTypes", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cbBtc", data: BytesLike): Result;
   decodeFunctionResult(
@@ -208,10 +277,42 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "dailyCaseCaseBps",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCaseCaseMax",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCaseCaseMin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCaseCbBtcMax",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCaseCbBtcMin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCaseTypeId",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "dailyCooldown",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "emergencyWithdraw",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getOpening", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "lastDailyOpen",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "maxPriceAge",
     data: BytesLike
@@ -231,11 +332,23 @@ export interface CaseSaleInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "reservedReward",
+    functionFragment: "reservedCaseReward",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "reservedCbBtcReward",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "setCaseType",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setDailyCase",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setDailyCaseRewards",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -341,6 +454,50 @@ export namespace CaseTypeUpdatedEvent {
     maxRewardUsd: bigint;
     positiveReturnBps: bigint;
     enabled: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DailyCaseConfiguredEvent {
+  export type InputTuple = [
+    caseTypeId: BigNumberish,
+    cooldownSeconds: BigNumberish
+  ];
+  export type OutputTuple = [caseTypeId: bigint, cooldownSeconds: bigint];
+  export interface OutputObject {
+    caseTypeId: bigint;
+    cooldownSeconds: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DailyCaseRewardsUpdatedEvent {
+  export type InputTuple = [
+    caseBps: BigNumberish,
+    caseMin: BigNumberish,
+    caseMax: BigNumberish,
+    cbBtcMin: BigNumberish,
+    cbBtcMax: BigNumberish
+  ];
+  export type OutputTuple = [
+    caseBps: bigint,
+    caseMin: bigint,
+    caseMax: bigint,
+    cbBtcMin: bigint,
+    cbBtcMax: bigint
+  ];
+  export interface OutputObject {
+    caseBps: bigint;
+    caseMin: bigint;
+    caseMax: bigint;
+    cbBtcMin: bigint;
+    cbBtcMax: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -462,6 +619,8 @@ export interface CaseSale extends BaseContract {
 
   btcUsdScale: TypedContractMethod<[], [bigint], "view">;
 
+  caseToken: TypedContractMethod<[], [string], "view">;
+
   caseTypes: TypedContractMethod<
     [arg0: BigNumberish],
     [
@@ -484,6 +643,20 @@ export interface CaseSale extends BaseContract {
     "nonpayable"
   >;
 
+  dailyCaseCaseBps: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCaseCaseMax: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCaseCaseMin: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCaseCbBtcMax: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCaseCbBtcMin: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCaseTypeId: TypedContractMethod<[], [bigint], "view">;
+
+  dailyCooldown: TypedContractMethod<[], [bigint], "view">;
+
   emergencyWithdraw: TypedContractMethod<
     [token: AddressLike, to: AddressLike, amount: BigNumberish],
     [void],
@@ -496,6 +669,8 @@ export interface CaseSale extends BaseContract {
     "view"
   >;
 
+  lastDailyOpen: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+
   maxPriceAge: TypedContractMethod<[], [bigint], "view">;
 
   nextOpeningId: TypedContractMethod<[], [bigint], "view">;
@@ -503,9 +678,10 @@ export interface CaseSale extends BaseContract {
   openings: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, bigint, bigint, bigint, boolean, boolean] & {
+      [string, bigint, string, bigint, bigint, bigint, boolean, boolean] & {
         buyer: string;
         caseTypeId: bigint;
+        rewardToken: string;
         rewardAmount: bigint;
         reservedAmount: bigint;
         btcUsdPrice: bigint;
@@ -526,7 +702,9 @@ export interface CaseSale extends BaseContract {
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
-  reservedReward: TypedContractMethod<[], [bigint], "view">;
+  reservedCaseReward: TypedContractMethod<[], [bigint], "view">;
+
+  reservedCbBtcReward: TypedContractMethod<[], [bigint], "view">;
 
   setCaseType: TypedContractMethod<
     [
@@ -536,6 +714,24 @@ export interface CaseSale extends BaseContract {
       maxRewardUsd: BigNumberish,
       positiveReturnBps: BigNumberish,
       enabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  setDailyCase: TypedContractMethod<
+    [caseTypeId: BigNumberish, cooldownSeconds: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setDailyCaseRewards: TypedContractMethod<
+    [
+      caseBps: BigNumberish,
+      caseMin: BigNumberish,
+      caseMax: BigNumberish,
+      cbBtcMin: BigNumberish,
+      cbBtcMax: BigNumberish
     ],
     [void],
     "nonpayable"
@@ -586,6 +782,9 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "btcUsdScale"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
+    nameOrSignature: "caseToken"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "caseTypes"
   ): TypedContractMethod<
     [arg0: BigNumberish],
@@ -607,6 +806,27 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "claimReward"
   ): TypedContractMethod<[openingId: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "dailyCaseCaseBps"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCaseCaseMax"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCaseCaseMin"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCaseCbBtcMax"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCaseCbBtcMin"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCaseTypeId"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "dailyCooldown"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "emergencyWithdraw"
   ): TypedContractMethod<
     [token: AddressLike, to: AddressLike, amount: BigNumberish],
@@ -621,6 +841,9 @@ export interface CaseSale extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "lastDailyOpen"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  getFunction(
     nameOrSignature: "maxPriceAge"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -631,9 +854,10 @@ export interface CaseSale extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, bigint, bigint, bigint, boolean, boolean] & {
+      [string, bigint, string, bigint, bigint, bigint, boolean, boolean] & {
         buyer: string;
         caseTypeId: bigint;
+        rewardToken: string;
         rewardAmount: bigint;
         reservedAmount: bigint;
         btcUsdPrice: bigint;
@@ -653,7 +877,10 @@ export interface CaseSale extends BaseContract {
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "reservedReward"
+    nameOrSignature: "reservedCaseReward"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "reservedCbBtcReward"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "setCaseType"
@@ -665,6 +892,26 @@ export interface CaseSale extends BaseContract {
       maxRewardUsd: BigNumberish,
       positiveReturnBps: BigNumberish,
       enabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setDailyCase"
+  ): TypedContractMethod<
+    [caseTypeId: BigNumberish, cooldownSeconds: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setDailyCaseRewards"
+  ): TypedContractMethod<
+    [
+      caseBps: BigNumberish,
+      caseMin: BigNumberish,
+      caseMax: BigNumberish,
+      cbBtcMin: BigNumberish,
+      cbBtcMax: BigNumberish
     ],
     [void],
     "nonpayable"
@@ -712,6 +959,20 @@ export interface CaseSale extends BaseContract {
     CaseTypeUpdatedEvent.InputTuple,
     CaseTypeUpdatedEvent.OutputTuple,
     CaseTypeUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "DailyCaseConfigured"
+  ): TypedContractEvent<
+    DailyCaseConfiguredEvent.InputTuple,
+    DailyCaseConfiguredEvent.OutputTuple,
+    DailyCaseConfiguredEvent.OutputObject
+  >;
+  getEvent(
+    key: "DailyCaseRewardsUpdated"
+  ): TypedContractEvent<
+    DailyCaseRewardsUpdatedEvent.InputTuple,
+    DailyCaseRewardsUpdatedEvent.OutputTuple,
+    DailyCaseRewardsUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "EmergencyWithdraw"
@@ -785,6 +1046,28 @@ export interface CaseSale extends BaseContract {
       CaseTypeUpdatedEvent.InputTuple,
       CaseTypeUpdatedEvent.OutputTuple,
       CaseTypeUpdatedEvent.OutputObject
+    >;
+
+    "DailyCaseConfigured(uint256,uint256)": TypedContractEvent<
+      DailyCaseConfiguredEvent.InputTuple,
+      DailyCaseConfiguredEvent.OutputTuple,
+      DailyCaseConfiguredEvent.OutputObject
+    >;
+    DailyCaseConfigured: TypedContractEvent<
+      DailyCaseConfiguredEvent.InputTuple,
+      DailyCaseConfiguredEvent.OutputTuple,
+      DailyCaseConfiguredEvent.OutputObject
+    >;
+
+    "DailyCaseRewardsUpdated(uint16,uint256,uint256,uint256,uint256)": TypedContractEvent<
+      DailyCaseRewardsUpdatedEvent.InputTuple,
+      DailyCaseRewardsUpdatedEvent.OutputTuple,
+      DailyCaseRewardsUpdatedEvent.OutputObject
+    >;
+    DailyCaseRewardsUpdated: TypedContractEvent<
+      DailyCaseRewardsUpdatedEvent.InputTuple,
+      DailyCaseRewardsUpdatedEvent.OutputTuple,
+      DailyCaseRewardsUpdatedEvent.OutputObject
     >;
 
     "EmergencyWithdraw(address,address,uint256)": TypedContractEvent<

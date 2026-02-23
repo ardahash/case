@@ -10,7 +10,8 @@
     "hardhat": "hardhat",
     "compile": "hardhat compile",
     "deploy:base": "hardhat run scripts/deploy.ts --network base",
-    "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia"
+    "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
+    "deploy:daily": "hardhat run scripts/deployDailyCaseSale.ts --network base"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^1.1.2",

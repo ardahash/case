@@ -23,6 +23,7 @@
         components: [
           { name: "buyer", type: "address" },
           { name: "caseTypeId", type: "uint256" },
+          { name: "rewardToken", type: "address" },
           { name: "rewardAmount", type: "uint256" },
           { name: "reservedAmount", type: "uint256" },
           { name: "btcUsdPrice", type: "uint256" },
@@ -47,6 +48,37 @@
     stateMutability: "view",
     inputs: [{ name: "caseTypeId", type: "uint256" }],
     outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "dailyCaseTypeId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "dailyCooldown",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "lastDailyOpen",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "setDailyCase",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "caseTypeId", type: "uint256" },
+      { name: "cooldownSeconds", type: "uint256" },
+    ],
+    outputs: [],
   },
   {
     type: "event",

@@ -8,6 +8,7 @@ const MOCK_BASE_SEPOLIA = {
   xCaseToken: "0x5555555555555555555555555555555555555555",
   xCaseStaking: "0x6666666666666666666666666666666666666666",
   caseSale: "0x7777777777777777777777777777777777777777",
+  dailyCaseSale: "0x7777777777777777777777777777777777777778",
   basedRoomRewards: "0x8888888888888888888888888888888888888888",
 };
 
@@ -19,6 +20,7 @@ const MAINNET_PLACEHOLDERS = {
   xCaseToken: "0x0000000000000000000000000000000000000000",
   xCaseStaking: "0x0000000000000000000000000000000000000000",
   caseSale: "0x0000000000000000000000000000000000000000",
+  dailyCaseSale: "0x0000000000000000000000000000000000000000",
   basedRoomRewards: "0x0000000000000000000000000000000000000000",
 };
 
@@ -35,6 +37,8 @@ export const contractAddresses = {
     process.env.NEXT_PUBLIC_XCASE_STAKING_ADDRESS || defaults.xCaseStaking,
   caseSale:
     process.env.NEXT_PUBLIC_CASE_SALE_OR_MANAGER_ADDRESS || defaults.caseSale,
+  dailyCaseSale:
+    process.env.NEXT_PUBLIC_DAILY_CASE_SALE_ADDRESS || defaults.dailyCaseSale,
   basedRoomRewards:
     process.env.NEXT_PUBLIC_BASED_ROOM_REWARDS_ADDRESS || defaults.basedRoomRewards,
 };
@@ -59,6 +63,9 @@ export const contractFlags = {
   caseSaleConfigured:
     !isMockOrUnsetAddress(contractAddresses.usdc) &&
     !isMockOrUnsetAddress(contractAddresses.caseSale),
+  dailyCaseSaleConfigured:
+    !isMockOrUnsetAddress(contractAddresses.usdc) &&
+    !isMockOrUnsetAddress(contractAddresses.dailyCaseSale),
 };
 
 export const USDC_DECIMALS = 6;

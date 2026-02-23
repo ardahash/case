@@ -50,7 +50,7 @@ export function DailyClaimCard() {
     <Card className="glass">
       <CardHeader>
         <CardTitle>Daily Mini-Case</CardTitle>
-        <CardDescription>Reward range $0.001 - $0.10 worth of cbBTC (onchain enforced).</CardDescription>
+        <CardDescription>Onchain daily reward: small CASE or cbBTC.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm">

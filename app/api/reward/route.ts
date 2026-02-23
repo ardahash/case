@@ -45,8 +45,10 @@ export async function POST(request: NextRequest) {
 
   return Response.json({
     openingId,
+    rewardAmount: Number(rewardCbBtc.toFixed(8)),
+    rewardSymbol: "cbBTC",
+    rewardDecimals: 8,
     rewardUsd: Number(rewardUsd.toFixed(2)),
-    rewardCbBtc: Number(rewardCbBtc.toFixed(8)),
     cbBtcUsdPrice,
     randomness: {
       source: "server-mvp",

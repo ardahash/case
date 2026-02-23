@@ -4,7 +4,7 @@ export function Footer() {
       <div className="container flex flex-col gap-2 py-6 text-xs text-muted-foreground">
         <span>Not investment advice.</span>
         <span>Availability varies by jurisdiction.</span>
-        <span>cbBTC is a tokenized asset. Rewards are subject to liquidity and treasury balance.</span>
+        <span>Rewards may be CASE or cbBTC and are subject to liquidity and treasury balance.</span>
       </div>
     </footer>
   );

@@ -14,9 +14,13 @@ type CaseAvailability = {
 };
 
 export function useCaseAvailability(caseType?: CaseType): CaseAvailability {
+  const isDaily = caseType?.priceUSDC === 0;
   const enabled =
-    Boolean(caseType) && contractFlags.caseSaleConfigured;
-  const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
+    Boolean(caseType) &&
+    (isDaily ? contractFlags.dailyCaseSaleConfigured : contractFlags.caseSaleConfigured);
+  const caseSaleAddress = (isDaily
+    ? contractAddresses.dailyCaseSale
+    : contractAddresses.caseSale) as `0x${string}`;
 
   const { data, isLoading } = useReadContract({
     address: caseSaleAddress,

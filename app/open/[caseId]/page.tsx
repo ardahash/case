@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import sdk from "@farcaster/miniapp-sdk";
 import { caseSaleAbi } from "@/lib/abis/caseSale";
 import { erc20Abi } from "@/lib/abis/erc20";
-import { contractAddresses, contractFlags, USDC_DECIMALS } from "@/lib/contracts";
+import { CASE_DECIMALS, CBBTC_DECIMALS, contractAddresses, contractFlags, USDC_DECIMALS } from "@/lib/contracts";
 import { getCaseType } from "@/config/caseTypes";
 import { formatToken, formatUsd } from "@/lib/format";
 import { getExplorerTxUrl } from "@/lib/explorer";
@@ -24,9 +24,11 @@ import { ModelViewer } from "@/components/shared/ModelViewer";
 
 type RewardResponse = {
   openingId: string;
-  rewardUsd: number;
-  rewardCbBtc: number;
-  cbBtcUsdPrice: number;
+  rewardAmount: number;
+  rewardSymbol: string;
+  rewardDecimals: number;
+  rewardUsd: number | null;
+  cbBtcUsdPrice?: number;
   randomness: {
     source: string;
     commitment: string;
@@ -59,7 +61,11 @@ export default function OpenCasePage() {
   const { available, soldOut } = useCaseAvailability(caseType ?? undefined);
 
   const usdcAddress = contractAddresses.usdc as `0x${string}`;
-  const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
+  const isFreeCase = caseType?.priceUSDC === 0;
+  const caseSaleAddress = (isFreeCase
+    ? contractAddresses.dailyCaseSale
+    : contractAddresses.caseSale) as `0x${string}`;
+  const caseTokenAddress = contractAddresses.caseToken as `0x${string}`;
 
   const [approveHash, setApproveHash] = useState<`0x${string}` | null>(null);
   const [purchaseHash, setPurchaseHash] = useState<`0x${string}` | null>(null);
@@ -72,25 +78,30 @@ export default function OpenCasePage() {
   const [openingId, setOpeningId] = useState<bigint | null>(null);
   const [flowLoaded, setFlowLoaded] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const flowMode = contractFlags.caseSaleConfigured ? "live" : "mock";
+  const isLiveConfigured = isFreeCase
+    ? contractFlags.dailyCaseSaleConfigured
+    : contractFlags.caseSaleConfigured;
+  const flowMode = isLiveConfigured ? "live" : "mock";
 
   const storageKey = useMemo(() => {
     if (!caseType) return null;
-    if (contractFlags.caseSaleConfigured && !address) return null;
+    if (isLiveConfigured && !address) return null;
     const owner = (address ?? "guest").toLowerCase();
     return `case-open-flow:v${FLOW_STORAGE_VERSION}:${flowMode}:${caseType.id}:${owner}`;
-  }, [caseType, address, flowMode]);
+  }, [caseType, address, flowMode, isLiveConfigured]);
 
-  const steps = useMemo(
-    () => [
+  const steps = useMemo(() => {
+    if (isFreeCase) {
+      return ["Open free case", "Confirmation", "Opening video", "Reward reveal"];
+    }
+    return [
       "Approve USDC",
       `Pay ${caseType?.priceUSDC ?? 0} USDC`,
       "Confirmation",
       "Opening video",
       "Reward reveal",
-    ],
-    [caseType?.priceUSDC],
-  );
+    ];
+  }, [caseType?.priceUSDC, isFreeCase]);
 
   const priceUnits = useMemo(() => {
     if (!caseType) return 0n;
@@ -103,7 +114,7 @@ export default function OpenCasePage() {
     functionName: "allowance",
     args: address ? [address, caseSaleAddress] : undefined,
     query: {
-      enabled: Boolean(address) && contractFlags.caseSaleConfigured,
+      enabled: Boolean(address) && isLiveConfigured && !isFreeCase,
       refetchInterval: 5000,
       refetchOnWindowFocus: true,
     },
@@ -114,15 +125,15 @@ export default function OpenCasePage() {
     query: { enabled: Boolean(approveHash), refetchInterval: 4000, refetchOnWindowFocus: true },
   });
 
-  const hasAllowance = allowance ? allowance >= priceUnits : false;
-  const effectiveAllowance = !contractFlags.caseSaleConfigured
+  const hasAllowance = isFreeCase ? true : allowance ? allowance >= priceUnits : false;
+  const effectiveAllowance = !isLiveConfigured
     ? mockApproved || Boolean(purchaseHash)
-    : hasAllowance || approveReceipt.isSuccess;
+    : hasAllowance || approveReceipt.isSuccess || Boolean(purchaseHash);
 
   const purchaseReceipt = useWaitForTransactionReceipt({
     hash: purchaseHash ?? undefined,
     query: {
-      enabled: Boolean(purchaseHash) && contractFlags.caseSaleConfigured,
+      enabled: Boolean(purchaseHash) && isLiveConfigured,
       refetchInterval: 4000,
       refetchOnWindowFocus: true,
     },
@@ -136,13 +147,13 @@ export default function OpenCasePage() {
   }, [approveReceipt.isSuccess, refetchAllowance]);
 
   useEffect(() => {
-    if (!contractFlags.caseSaleConfigured && mockPaymentConfirmed && purchaseHash) {
+    if (!isLiveConfigured && mockPaymentConfirmed && purchaseHash) {
       toast.success("Payment confirmed. Opening case...");
       void fetchReward(purchaseHash);
       return;
     }
 
-    if (purchaseReceipt.isSuccess && purchaseReceipt.data && contractFlags.caseSaleConfigured) {
+    if (purchaseReceipt.isSuccess && purchaseReceipt.data && isLiveConfigured) {
       const logs = parseEventLogs({
         abi: caseSaleAbi,
         logs: purchaseReceipt.data.logs,
@@ -159,7 +170,7 @@ export default function OpenCasePage() {
     purchaseReceipt.data,
     purchaseHash,
     mockPaymentConfirmed,
-    contractFlags.caseSaleConfigured,
+    isLiveConfigured,
   ]);
 
   const { data: openingData } = useReadContract({
@@ -168,7 +179,7 @@ export default function OpenCasePage() {
     functionName: "getOpening",
     args: openingId ? [openingId] : undefined,
     query: {
-      enabled: Boolean(openingId) && contractFlags.caseSaleConfigured,
+      enabled: Boolean(openingId) && isLiveConfigured,
       refetchInterval: 6000,
       refetchOnWindowFocus: true,
     },
@@ -178,13 +189,57 @@ export default function OpenCasePage() {
     address: caseSaleAddress,
     abi: caseSaleAbi,
     functionName: "btcUsdDecimals",
-    query: { enabled: contractFlags.caseSaleConfigured },
+    query: { enabled: isLiveConfigured },
   });
 
+  const { data: dailyCaseTypeId } = useReadContract({
+    address: caseSaleAddress,
+    abi: caseSaleAbi,
+    functionName: "dailyCaseTypeId",
+    query: { enabled: isLiveConfigured && isFreeCase },
+  });
+
+  const { data: dailyCooldown } = useReadContract({
+    address: caseSaleAddress,
+    abi: caseSaleAbi,
+    functionName: "dailyCooldown",
+    query: { enabled: isLiveConfigured && isFreeCase },
+  });
+
+  const { data: lastDailyOpen } = useReadContract({
+    address: caseSaleAddress,
+    abi: caseSaleAbi,
+    functionName: "lastDailyOpen",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address) && isLiveConfigured && isFreeCase },
+  });
+
+  const isDailyCase =
+    isFreeCase &&
+    typeof dailyCaseTypeId !== "undefined" &&
+    Number(dailyCaseTypeId) === caseType?.id;
+  const cooldownSeconds =
+    typeof dailyCooldown === "bigint" ? Number(dailyCooldown) : 24 * 60 * 60;
+  const lastOpenSeconds =
+    typeof lastDailyOpen === "bigint" ? Number(lastDailyOpen) : 0;
+  const nextDailyAvailable =
+    isDailyCase && lastOpenSeconds > 0
+      ? new Date((lastOpenSeconds + cooldownSeconds) * 1000)
+      : null;
+  const isDailyCooldown =
+    isDailyCase &&
+    lastOpenSeconds > 0 &&
+    Date.now() / 1000 < lastOpenSeconds + cooldownSeconds;
+
   useEffect(() => {
-    if (!openingData || !contractFlags.caseSaleConfigured) return;
+    if (!openingData || !isLiveConfigured) return;
     if (!openingData.rewarded) return;
-    const rewardCbBtc = Number(formatUnits(openingData.rewardAmount, 8));
+    const isCaseReward =
+      typeof openingData.rewardToken === "string" &&
+      openingData.rewardToken.toLowerCase() === caseTokenAddress.toLowerCase();
+    const tokenDecimals = isCaseReward ? CASE_DECIMALS : CBBTC_DECIMALS;
+    const displayDecimals = isCaseReward ? 4 : 8;
+    const rewardAmount = Number(formatUnits(openingData.rewardAmount, tokenDecimals));
     const decimals =
       typeof btcUsdDecimals === "number"
         ? btcUsdDecimals
@@ -199,9 +254,11 @@ export default function OpenCasePage() {
       priceFromFeed || Number(process.env.NEXT_PUBLIC_CBBTC_USD) || 60000;
     setReward({
       openingId: openingId?.toString() ?? "0",
-      rewardUsd: rewardCbBtc * cbBtcUsdPrice,
-      rewardCbBtc,
-      cbBtcUsdPrice,
+      rewardAmount,
+      rewardSymbol: isCaseReward ? "CASE" : "cbBTC",
+      rewardDecimals: displayDecimals,
+      rewardUsd: isCaseReward ? null : rewardAmount * cbBtcUsdPrice,
+      cbBtcUsdPrice: isCaseReward ? undefined : cbBtcUsdPrice,
       randomness: {
         source: "onchain-entropy",
         commitment: "n/a",
@@ -253,14 +310,14 @@ export default function OpenCasePage() {
       if (stored.approveHash) setApproveHash(stored.approveHash);
       if (stored.purchaseHash) setPurchaseHash(stored.purchaseHash);
       if (stored.openingId) setOpeningId(BigInt(stored.openingId));
-      if (!contractFlags.caseSaleConfigured && stored.mockApproved) setMockApproved(true);
-      if (!contractFlags.caseSaleConfigured && stored.mockPaymentConfirmed) setMockPaymentConfirmed(true);
+      if (!isLiveConfigured && stored.mockApproved) setMockApproved(true);
+      if (!isLiveConfigured && stored.mockPaymentConfirmed) setMockPaymentConfirmed(true);
     } catch (error) {
       console.warn("Failed to restore open flow state", error);
     } finally {
       setFlowLoaded(true);
     }
-  }, [storageKey, flowLoaded, flowMode, contractFlags.caseSaleConfigured]);
+  }, [storageKey, flowLoaded, flowMode, isLiveConfigured]);
 
   useEffect(() => {
     if (!storageKey || !flowLoaded) return;
@@ -311,7 +368,9 @@ export default function OpenCasePage() {
         id: reward.openingId,
         caseTypeId: caseType.id,
         caseName: caseType.name,
-        rewardCbBtc: reward.rewardCbBtc,
+        rewardAmount: reward.rewardAmount,
+        rewardSymbol: reward.rewardSymbol,
+        rewardDecimals: reward.rewardDecimals,
         rewardUsd: reward.rewardUsd,
         txHash: purchaseHash,
         timestamp: Date.now(),
@@ -345,7 +404,11 @@ export default function OpenCasePage() {
 
   const handleApprove = async () => {
     if (!address || !caseType) return;
-    if (!contractFlags.caseSaleConfigured) {
+    if (isFreeCase) {
+      toast.message("No approval needed for free cases.");
+      return;
+    }
+    if (!isLiveConfigured) {
       setMockApproved(true);
       toast.message("Mock approval recorded.");
       return;
@@ -370,16 +433,20 @@ export default function OpenCasePage() {
 
   const handlePurchase = async () => {
     if (!address || !caseType) return;
+    if (isDailyCooldown) {
+      toast.error("Daily case already opened. Try again tomorrow.");
+      return;
+    }
     if (soldOut) {
       toast.error("Sold out. Please check back soon.");
       return;
     }
-    if (!effectiveAllowance) {
+    if (!effectiveAllowance && !isFreeCase) {
       toast.error("Approve USDC first.");
       return;
     }
 
-    if (!contractFlags.caseSaleConfigured) {
+    if (!isLiveConfigured) {
       const mockHash = (`0x${crypto.getRandomValues(new Uint8Array(32)).reduce(
         (acc, value) => acc + value.toString(16).padStart(2, "0"),
         "",
@@ -411,7 +478,7 @@ export default function OpenCasePage() {
 
   const handleWithdraw = async () => {
     if (!reward) return;
-    if (!contractFlags.caseSaleConfigured) {
+    if (!isLiveConfigured) {
       toast.message("Withdraw is a TODO until contracts are deployed.");
       return;
     }
@@ -439,7 +506,9 @@ export default function OpenCasePage() {
       typeof window !== "undefined"
         ? `${window.location.origin}/open/${caseType.id}`
         : process.env.NEXT_PUBLIC_URL || "";
-    const shareText = `I opened ${caseType.name} and got ${formatToken(reward.rewardCbBtc, "cbBTC", 8)} (~${formatUsd(reward.rewardUsd)}).`;
+    const rewardLabel = formatToken(reward.rewardAmount, reward.rewardSymbol, reward.rewardDecimals);
+    const usdLabel = reward.rewardUsd !== null ? ` (~${formatUsd(reward.rewardUsd)})` : "";
+    const shareText = `I opened ${caseType.name} and got ${rewardLabel}${usdLabel}.`;
 
     try {
       setIsSharing(true);
@@ -502,34 +571,55 @@ export default function OpenCasePage() {
     );
   }
 
-  const paymentConfirmed = contractFlags.caseSaleConfigured
+  const paymentConfirmed = isLiveConfigured
     ? Boolean(openingId)
     : mockPaymentConfirmed;
 
-  const stepStates: { label: string; status: StepStatus }[] = [
-    { label: steps[0], status: effectiveAllowance ? "done" : "active" },
-    {
-      label: steps[1],
-      status: purchaseHash ? "done" : effectiveAllowance ? "active" : "pending",
-    },
-    {
-      label: steps[2],
-      status:
-        paymentConfirmed
-          ? "done"
-          : purchaseHash
-            ? "active"
-            : "pending",
-    },
-    {
-      label: steps[3],
-      status: reward ? (isVideoDone ? "done" : "active") : "pending",
-    },
-    {
-      label: steps[4],
-      status: reward && isVideoDone ? "done" : reward ? "active" : "pending",
-    },
-  ];
+  const stepStates: { label: string; status: StepStatus }[] = isFreeCase
+    ? [
+        { label: steps[0], status: purchaseHash ? "done" : "active" },
+        {
+          label: steps[1],
+          status:
+            paymentConfirmed
+              ? "done"
+              : purchaseHash
+                ? "active"
+                : "pending",
+        },
+        {
+          label: steps[2],
+          status: reward ? (isVideoDone ? "done" : "active") : "pending",
+        },
+        {
+          label: steps[3],
+          status: reward && isVideoDone ? "done" : reward ? "active" : "pending",
+        },
+      ]
+    : [
+        { label: steps[0], status: effectiveAllowance ? "done" : "active" },
+        {
+          label: steps[1],
+          status: purchaseHash ? "done" : effectiveAllowance ? "active" : "pending",
+        },
+        {
+          label: steps[2],
+          status:
+            paymentConfirmed
+              ? "done"
+              : purchaseHash
+                ? "active"
+                : "pending",
+        },
+        {
+          label: steps[3],
+          status: reward ? (isVideoDone ? "done" : "active") : "pending",
+        },
+        {
+          label: steps[4],
+          status: reward && isVideoDone ? "done" : reward ? "active" : "pending",
+        },
+      ];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -543,14 +633,16 @@ export default function OpenCasePage() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <Badge variant="secondary">Case #{caseType.id}</Badge>
-          <span>{formatUsd(caseType.priceUSDC)} USDC</span>
+          <span>{isFreeCase ? "Free daily" : `${formatUsd(caseType.priceUSDC)} USDC`}</span>
           {available !== null && (
             <span>{available.toString()} in stock</span>
           )}
         </div>
         <h1 className="text-3xl font-semibold">Open {caseType.name}</h1>
         <p className="text-muted-foreground">
-          Approve USDC, pay, and reveal a random cbBTC reward after the opening video.
+          {isFreeCase
+            ? "Open once per day for a small CASE or cbBTC reward."
+            : "Approve USDC, pay, and reveal a random cbBTC reward after the opening video."}
         </p>
       </div>
 
@@ -566,31 +658,50 @@ export default function OpenCasePage() {
             <Stepper steps={stepStates} />
 
             <div className="flex flex-col gap-3">
-              <Button onClick={handleApprove} disabled={!isConnected || effectiveAllowance || isBusy}>
-                {approveReceipt.isLoading
-                  ? "Approving..."
-                  : effectiveAllowance
-                    ? "USDC Approved"
-                    : "Approve USDC"}
-              </Button>
+              {!isFreeCase && (
+                <Button onClick={handleApprove} disabled={!isConnected || effectiveAllowance || isBusy}>
+                  {approveReceipt.isLoading
+                    ? "Approving..."
+                    : effectiveAllowance
+                      ? "USDC Approved"
+                      : "Approve USDC"}
+                </Button>
+              )}
               <Button
                 onClick={handlePurchase}
                 variant="secondary"
-                disabled={!isConnected || !effectiveAllowance || Boolean(purchaseHash) || isBusy || soldOut}
+                disabled={
+                  !isConnected ||
+                  (!effectiveAllowance && !isFreeCase) ||
+                  Boolean(purchaseHash) ||
+                  isBusy ||
+                  soldOut ||
+                  isDailyCooldown
+                }
               >
                 {purchaseReceipt.isLoading
-                  ? "Paying..."
+                  ? "Opening..."
                   : soldOut
                     ? "SOLD OUT"
-                    : purchaseHash
-                      ? "Payment Sent"
-                      : `Pay ${caseType.priceUSDC} USDC`}
+                    : isDailyCooldown
+                      ? "Come back tomorrow"
+                      : purchaseHash
+                        ? "Payment Sent"
+                        : isFreeCase
+                          ? "Open Free Case"
+                          : `Pay ${caseType.priceUSDC} USDC`}
               </Button>
             </div>
 
+            {isDailyCooldown && nextDailyAvailable && (
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Next free open available {nextDailyAvailable.toLocaleString()}.
+              </div>
+            )}
+
             {soldOut && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                Sold out. This case will restock after cbBTC is funded into the sale contract.
+                Sold out. This case will restock after rewards are funded into the sale contract.
               </div>
             )}
 
@@ -647,11 +758,13 @@ export default function OpenCasePage() {
               <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background/70 p-4">
                 <div className="text-sm text-muted-foreground">Reward revealed</div>
                 <div className="text-2xl font-semibold">
-                  {formatToken(reward.rewardCbBtc, "cbBTC", 8)}
+                  {formatToken(reward.rewardAmount, reward.rewardSymbol, reward.rewardDecimals)}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  ~ {formatUsd(reward.rewardUsd)} @ ${reward.cbBtcUsdPrice.toFixed(2)} / cbBTC
-                </div>
+                {reward.rewardUsd !== null && reward.cbBtcUsdPrice !== undefined && (
+                  <div className="text-sm text-muted-foreground">
+                    ~ {formatUsd(reward.rewardUsd)} @ ${reward.cbBtcUsdPrice.toFixed(2)} / cbBTC
+                  </div>
+                )}
                 <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                   <span>Randomness: {reward.randomness.source}</span>
                   <span>Commitment: {reward.randomness.commitment}</span>
@@ -659,12 +772,12 @@ export default function OpenCasePage() {
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button onClick={handleWithdraw} disabled={isBusy || alreadyClaimed}>
-                    {alreadyClaimed ? "Claimed" : "Claim cbBTC"}
+                    {alreadyClaimed ? "Claimed" : `Claim ${reward.rewardSymbol}`}
                   </Button>
                   <Button onClick={handleShareReward} variant="outline" disabled={isSharing}>
                     {isSharing ? "Opening Share..." : "Share Reward"}
                   </Button>
-                  {purchaseHash && contractFlags.caseSaleConfigured && (
+                  {purchaseHash && isLiveConfigured && (
                     <Link
                       href={getExplorerTxUrl(purchaseHash)}
                       className={buttonVariants({ variant: "outline" })}

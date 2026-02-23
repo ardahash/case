@@ -5,8 +5,10 @@ export type OpeningRecord = {
   id: string;
   caseTypeId: number;
   caseName: string;
-  rewardCbBtc: number;
-  rewardUsd: number;
+  rewardAmount: number;
+  rewardSymbol: string;
+  rewardDecimals: number;
+  rewardUsd: number | null;
   txHash: string;
   timestamp: number;
 };
@@ -28,7 +30,7 @@ export const useOpeningsStore = create<OpeningsState>()(
       clear: () => set({ openings: [] }),
     }),
     {
-      name: "case-openings-v1",
+      name: "case-openings-v2",
     },
   ),
 );

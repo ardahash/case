@@ -24,6 +24,7 @@ contract CaseSale is ReentrancyGuard, Ownable {
   struct Opening {
     address buyer;
     uint256 caseTypeId;
+    address rewardToken;
     uint256 rewardAmount;
     uint256 reservedAmount;
     uint256 btcUsdPrice;
@@ -33,17 +34,27 @@ contract CaseSale is ReentrancyGuard, Ownable {
 
   IERC20 public immutable usdc;
   IERC20 public immutable cbBtc;
+  IERC20 public immutable caseToken;
   AggregatorV3Interface public immutable btcUsdFeed;
   uint8 public immutable btcUsdDecimals;
   uint256 public immutable btcUsdScale;
   address public treasury;
 
   uint256 public nextOpeningId;
-  uint256 public reservedReward;
+  uint256 public reservedCbBtcReward;
+  uint256 public reservedCaseReward;
   uint256 public maxPriceAge;
+  uint256 public dailyCaseTypeId;
+  uint256 public dailyCooldown = 1 days;
+  uint16 public dailyCaseCaseBps;
+  uint256 public dailyCaseCaseMin;
+  uint256 public dailyCaseCaseMax;
+  uint256 public dailyCaseCbBtcMin;
+  uint256 public dailyCaseCbBtcMax;
 
   mapping(uint256 => CaseType) public caseTypes;
   mapping(uint256 => Opening) public openings;
+  mapping(address => uint256) public lastDailyOpen;
 
   event CaseTypeUpdated(
     uint256 indexed caseTypeId,
@@ -59,20 +70,31 @@ contract CaseSale is ReentrancyGuard, Ownable {
   event TreasuryUpdated(address indexed treasury);
   event MaxPriceAgeUpdated(uint256 maxPriceAge);
   event EmergencyWithdraw(address indexed token, address indexed to, uint256 amount);
+  event DailyCaseConfigured(uint256 caseTypeId, uint256 cooldownSeconds);
+  event DailyCaseRewardsUpdated(
+    uint16 caseBps,
+    uint256 caseMin,
+    uint256 caseMax,
+    uint256 cbBtcMin,
+    uint256 cbBtcMax
+  );
 
   constructor(
     address usdcAddress,
     address cbBtcAddress,
+    address caseTokenAddress,
     address btcUsdFeedAddress,
     address treasuryAddress
   ) Ownable(msg.sender) {
     require(usdcAddress != address(0), "USDC address required");
     require(cbBtcAddress != address(0), "cbBTC address required");
+    require(caseTokenAddress != address(0), "CASE address required");
     require(btcUsdFeedAddress != address(0), "BTC/USD feed required");
     require(treasuryAddress != address(0), "Treasury address required");
 
     usdc = IERC20(usdcAddress);
     cbBtc = IERC20(cbBtcAddress);
+    caseToken = IERC20(caseTokenAddress);
     btcUsdFeed = AggregatorV3Interface(btcUsdFeedAddress);
     btcUsdDecimals = btcUsdFeed.decimals();
     btcUsdScale = 10 ** btcUsdDecimals;
@@ -92,6 +114,32 @@ contract CaseSale is ReentrancyGuard, Ownable {
     emit MaxPriceAgeUpdated(newMaxPriceAge);
   }
 
+  function setDailyCase(uint256 caseTypeId, uint256 cooldownSeconds) external onlyOwner {
+    dailyCaseTypeId = caseTypeId;
+    if (cooldownSeconds > 0) {
+      dailyCooldown = cooldownSeconds;
+    }
+    emit DailyCaseConfigured(caseTypeId, dailyCooldown);
+  }
+
+  function setDailyCaseRewards(
+    uint16 caseBps,
+    uint256 caseMin,
+    uint256 caseMax,
+    uint256 cbBtcMin,
+    uint256 cbBtcMax
+  ) external onlyOwner {
+    require(caseBps <= 10000, "Invalid BPS");
+    require(caseMax >= caseMin, "Invalid CASE range");
+    require(cbBtcMax >= cbBtcMin, "Invalid cbBTC range");
+    dailyCaseCaseBps = caseBps;
+    dailyCaseCaseMin = caseMin;
+    dailyCaseCaseMax = caseMax;
+    dailyCaseCbBtcMin = cbBtcMin;
+    dailyCaseCbBtcMax = cbBtcMax;
+    emit DailyCaseRewardsUpdated(caseBps, caseMin, caseMax, cbBtcMin, cbBtcMax);
+  }
+
   function setCaseType(
     uint256 caseTypeId,
     uint256 priceUSDC,
@@ -101,7 +149,9 @@ contract CaseSale is ReentrancyGuard, Ownable {
     bool enabled
   ) external onlyOwner {
     require(maxRewardUsd >= minRewardUsd, "Invalid reward range");
-    require(priceUSDC >= minRewardUsd && priceUSDC <= maxRewardUsd, "Price outside range");
+    if (priceUSDC != 0) {
+      require(priceUSDC >= minRewardUsd && priceUSDC <= maxRewardUsd, "Price outside range");
+    }
     require(positiveReturnBps <= 10000, "Invalid BPS");
     caseTypes[caseTypeId] = CaseType({
       priceUSDC: priceUSDC,
@@ -115,7 +165,36 @@ contract CaseSale is ReentrancyGuard, Ownable {
 
   function availableCases(uint256 caseTypeId) public view returns (uint256) {
     CaseType memory caseType = caseTypes[caseTypeId];
-    if (!caseType.enabled || caseType.maxRewardUsd == 0) {
+    if (!caseType.enabled) {
+      return 0;
+    }
+    if (caseTypeId == dailyCaseTypeId && dailyCaseTypeId != 0) {
+      uint256 availableCase = 0;
+      uint256 availableCbBtc = 0;
+
+      if (dailyCaseCaseBps > 0 && dailyCaseCaseMax > 0) {
+        uint256 caseBalance = caseToken.balanceOf(address(this));
+        if (caseBalance > reservedCaseReward) {
+          availableCase = (caseBalance - reservedCaseReward) / dailyCaseCaseMax;
+        }
+      }
+
+      if (dailyCaseCaseBps < 10000 && dailyCaseCbBtcMax > 0) {
+        uint256 cbBtcBalance = cbBtc.balanceOf(address(this));
+        if (cbBtcBalance > reservedCbBtcReward) {
+          availableCbBtc = (cbBtcBalance - reservedCbBtcReward) / dailyCaseCbBtcMax;
+        }
+      }
+
+      if (dailyCaseCaseBps == 10000) {
+        return availableCase;
+      }
+      if (dailyCaseCaseBps == 0) {
+        return availableCbBtc;
+      }
+      return availableCase < availableCbBtc ? availableCase : availableCbBtc;
+    }
+    if (caseType.maxRewardUsd == 0) {
       return 0;
     }
     uint256 price = _getBtcUsdPrice();
@@ -124,32 +203,80 @@ contract CaseSale is ReentrancyGuard, Ownable {
       return 0;
     }
     uint256 balance = cbBtc.balanceOf(address(this));
-    if (balance <= reservedReward) {
+    if (balance <= reservedCbBtcReward) {
       return 0;
     }
-    return (balance - reservedReward) / maxReward;
+    return (balance - reservedCbBtcReward) / maxReward;
   }
 
   function purchaseCase(uint256 caseTypeId) external nonReentrant returns (uint256 openingId) {
     CaseType memory caseType = caseTypes[caseTypeId];
     require(caseType.enabled, "Case disabled");
-    require(caseType.priceUSDC > 0, "Case not found");
+    bool isDaily = caseTypeId == dailyCaseTypeId && dailyCaseTypeId != 0;
+    if (isDaily) {
+      uint256 lastOpen = lastDailyOpen[msg.sender];
+      require(block.timestamp - lastOpen >= dailyCooldown, "Daily case cooldown");
+      lastDailyOpen[msg.sender] = block.timestamp;
+    } else {
+      require(caseType.priceUSDC > 0, "Case not found");
+    }
 
     uint256 btcUsdPrice = _getBtcUsdPrice();
+
+    openingId = ++nextOpeningId;
+    if (isDaily) {
+      uint256 dailyRandomBase = _pseudoRandom(openingId, caseTypeId);
+      bool caseReward = dailyCaseCaseBps > 0 &&
+        (dailyCaseCaseBps == 10000 || (dailyRandomBase % 10000) < dailyCaseCaseBps);
+
+      address rewardToken = caseReward ? address(caseToken) : address(cbBtc);
+      uint256 rewardAmount = caseReward
+        ? _randomRange(dailyRandomBase, dailyCaseCaseMin, dailyCaseCaseMax)
+        : _randomRange(dailyRandomBase, dailyCaseCbBtcMin, dailyCaseCbBtcMax);
+
+      require(rewardAmount > 0, "Daily reward unset");
+
+      if (caseReward) {
+        uint256 caseBalance = caseToken.balanceOf(address(this));
+        require(caseBalance >= reservedCaseReward + rewardAmount, "Insufficient CASE");
+        reservedCaseReward += rewardAmount;
+      } else {
+        uint256 cbBtcBalance = cbBtc.balanceOf(address(this));
+        require(cbBtcBalance >= reservedCbBtcReward + rewardAmount, "Insufficient cbBTC");
+        reservedCbBtcReward += rewardAmount;
+      }
+
+      openings[openingId] = Opening({
+        buyer: msg.sender,
+        caseTypeId: caseTypeId,
+        rewardToken: rewardToken,
+        rewardAmount: rewardAmount,
+        reservedAmount: rewardAmount,
+        btcUsdPrice: caseReward ? 0 : btcUsdPrice,
+        rewarded: true,
+        claimed: false
+      });
+
+      emit CasePurchased(msg.sender, caseTypeId, openingId, caseType.priceUSDC);
+      emit CaseRewarded(openingId, rewardAmount);
+      return openingId;
+    }
+
     uint256 maxReward = _usdToCbBtc(caseType.maxRewardUsd, btcUsdPrice);
     require(maxReward > 0, "Price too low");
 
     uint256 balance = cbBtc.balanceOf(address(this));
-    require(balance > reservedReward, "Sold out");
-    require((balance - reservedReward) / maxReward > 0, "Sold out");
+    require(balance >= reservedCbBtcReward + maxReward, "Sold out");
 
-    usdc.safeTransferFrom(msg.sender, treasury, caseType.priceUSDC);
+    if (caseType.priceUSDC > 0) {
+      usdc.safeTransferFrom(msg.sender, treasury, caseType.priceUSDC);
+    }
 
-    openingId = ++nextOpeningId;
-    reservedReward += maxReward;
+    reservedCbBtcReward += maxReward;
     openings[openingId] = Opening({
       buyer: msg.sender,
       caseTypeId: caseTypeId,
+      rewardToken: address(cbBtc),
       rewardAmount: 0,
       reservedAmount: maxReward,
       btcUsdPrice: btcUsdPrice,
@@ -161,6 +288,7 @@ contract CaseSale is ReentrancyGuard, Ownable {
     _finalizeReward(openingId, randomBase);
 
     emit CasePurchased(msg.sender, caseTypeId, openingId, caseType.priceUSDC);
+    return openingId;
   }
 
   function claimReward(uint256 openingId) external nonReentrant {
@@ -171,10 +299,14 @@ contract CaseSale is ReentrancyGuard, Ownable {
 
     opening.claimed = true;
     if (opening.reservedAmount > 0) {
-      reservedReward -= opening.reservedAmount;
+      if (opening.rewardToken == address(caseToken)) {
+        reservedCaseReward -= opening.reservedAmount;
+      } else {
+        reservedCbBtcReward -= opening.reservedAmount;
+      }
       opening.reservedAmount = 0;
     }
-    cbBtc.safeTransfer(msg.sender, opening.rewardAmount);
+    IERC20(opening.rewardToken).safeTransfer(msg.sender, opening.rewardAmount);
 
     emit CaseClaimed(openingId, msg.sender, opening.rewardAmount);
   }
@@ -260,7 +392,7 @@ contract CaseSale is ReentrancyGuard, Ownable {
     }
 
     if (opening.reservedAmount > 0) {
-      reservedReward = reservedReward - opening.reservedAmount + rewardAmount;
+      reservedCbBtcReward = reservedCbBtcReward - opening.reservedAmount + rewardAmount;
       opening.reservedAmount = rewardAmount;
     }
     opening.rewardAmount = rewardAmount;
@@ -285,5 +417,13 @@ contract CaseSale is ReentrancyGuard, Ownable {
     }
     uint256 rewardRange = maxRewardCbBtc - minRewardCbBtc + 1;
     return minRewardCbBtc + (randomBase % rewardRange);
+  }
+
+  function _randomRange(uint256 randomBase, uint256 minValue, uint256 maxValue) internal pure returns (uint256) {
+    if (maxValue <= minValue) {
+      return minValue;
+    }
+    uint256 range = maxValue - minValue + 1;
+    return minValue + (randomBase % range);
   }
 }

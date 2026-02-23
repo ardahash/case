@@ -20,7 +20,15 @@ export function CaseCard({ caseType }: CaseCardProps) {
   const overlayText = isConfiguredLive ? "sold out" : caseType.availability.replace("-", " ");
   const availabilityLabel =
     available !== null ? `${available.toString()} in stock` : isLoading && isConfiguredLive ? "checking inventory" : caseType.availability;
-  const ctaLabel = soldOut ? "SOLD OUT" : isConfiguredLive ? "Buy & Open" : caseType.availability.replace("-", " ").toUpperCase();
+  const isFreeCase = caseType.priceUSDC === 0;
+  const ctaLabel = soldOut
+    ? "SOLD OUT"
+    : isConfiguredLive
+      ? isFreeCase
+        ? "Open Free"
+        : "Buy & Open"
+      : caseType.availability.replace("-", " ").toUpperCase();
+  const priceLabel = isFreeCase ? "Free" : formatUsd(caseType.priceUSDC);
 
   return (
     <div className="glass flex h-full flex-col gap-4 rounded-3xl p-6">
@@ -59,10 +67,12 @@ export function CaseCard({ caseType }: CaseCardProps) {
             {caseType.name}
           </h3>
           <p className="text-sm text-muted-foreground">
-            Reward range {formatUsd(caseType.minRewardUSD)} - {formatUsd(caseType.maxRewardUSD)}
+            {isFreeCase
+              ? "Reward: CASE or cbBTC"
+              : `Reward range ${formatUsd(caseType.minRewardUSD)} - ${formatUsd(caseType.maxRewardUSD)}`}
           </p>
         </div>
-        <Badge variant="secondary">{formatUsd(caseType.priceUSDC)}</Badge>
+        <Badge variant="secondary">{priceLabel}</Badge>
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">

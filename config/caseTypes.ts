@@ -59,6 +59,24 @@ export const caseTypes: CaseType[] = [
     },
     enabled: false,
   },
+  {
+    id: 3,
+    name: "Daily Mini",
+    priceUSDC: 0,
+    minRewardUSD: 0.1,
+    maxRewardUSD: 0.5,
+    media: {
+      image: "/case-placeholder.png",
+      model: "/minicase.glb",
+      video: "/minicaseopening.mp4",
+    },
+    availability: "live",
+    oddsConfig: {
+      type: "uniform",
+      description: "Daily free open with small rewards.",
+    },
+    enabled: true,
+  },
 ];
 
 export const getCaseType = (caseId: string | number) =>

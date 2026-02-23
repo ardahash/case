@@ -80,6 +80,13 @@ async function main() {
   const btcUsdFeed = requireEnv("BTC_USD_FEED");
   const treasury = requireEnv("TREASURY_ADDRESS");
   const rewardToken = process.env.XCASE_REWARD_TOKEN || usdc;
+  const dailyCaseTypeId = Number(process.env.DAILY_CASE_TYPE_ID ?? 0);
+  const dailyCooldownSeconds = Number(process.env.DAILY_CASE_COOLDOWN_SECONDS ?? 86400);
+  const dailyCaseCaseBps = Number(process.env.DAILY_CASE_CASE_BPS ?? 0);
+  const dailyCaseCaseMin = BigInt(process.env.DAILY_CASE_CASE_MIN ?? "0");
+  const dailyCaseCaseMax = BigInt(process.env.DAILY_CASE_CASE_MAX ?? "0");
+  const dailyCaseCbBtcMin = BigInt(process.env.DAILY_CASE_CBBTC_MIN ?? "0");
+  const dailyCaseCbBtcMax = BigInt(process.env.DAILY_CASE_CBBTC_MAX ?? "0");
 
   const [deployer] = await ethers.getSigners();
   console.log(`Deploying with: ${deployer.address} on ${network.name}`);
@@ -113,6 +120,7 @@ async function main() {
   const caseSale = await (CaseSale as any).deploy(
     usdc,
     cbbtc,
+    caseToken,
     btcUsdFeed,
     treasury,
     { ...overrides, nonce: nextNonce() },
@@ -135,6 +143,51 @@ async function main() {
       { ...overrides, nonce: nextNonce() },
     );
     await tx.wait();
+  }
+
+  if (
+    dailyCaseTypeId > 0 &&
+    process.env.DAILY_CASE_MIN_REWARD_USD &&
+    process.env.DAILY_CASE_MAX_REWARD_USD
+  ) {
+    const dailyPrice = BigInt(process.env.DAILY_CASE_PRICE_USDC ?? "0");
+    const dailyEnabled = String(process.env.DAILY_CASE_ENABLED ?? "true") === "true";
+    const dailyPositiveBps = Number(process.env.DAILY_CASE_POSITIVE_RETURN_BPS ?? 0);
+    const tx = await caseSale.setCaseType(
+      dailyCaseTypeId,
+      dailyPrice,
+      BigInt(process.env.DAILY_CASE_MIN_REWARD_USD),
+      BigInt(process.env.DAILY_CASE_MAX_REWARD_USD),
+      dailyPositiveBps,
+      dailyEnabled,
+      { ...overrides, nonce: nextNonce() },
+    );
+    await tx.wait();
+
+    const dailyTx = await caseSale.setDailyCase(
+      dailyCaseTypeId,
+      dailyCooldownSeconds,
+      { ...overrides, nonce: nextNonce() },
+    );
+    await dailyTx.wait();
+
+    if (
+      process.env.DAILY_CASE_CASE_BPS ||
+      process.env.DAILY_CASE_CASE_MIN ||
+      process.env.DAILY_CASE_CASE_MAX ||
+      process.env.DAILY_CASE_CBBTC_MIN ||
+      process.env.DAILY_CASE_CBBTC_MAX
+    ) {
+      const rewardTx = await caseSale.setDailyCaseRewards(
+        dailyCaseCaseBps,
+        dailyCaseCaseMin,
+        dailyCaseCaseMax,
+        dailyCaseCbBtcMin,
+        dailyCaseCbBtcMax,
+        { ...overrides, nonce: nextNonce() },
+      );
+      await rewardTx.wait();
+    }
   }
 
   const deployment = {

@@ -41,7 +41,7 @@ export default function Home() {
             </h1>
             <p className="text-lg text-muted-foreground">
               Buy a case using USDC, watch the case open,
-              reveal a random cbBTC reward, and track your history across Base and Farcaster.
+              reveal CASE or cbBTC rewards, and track your history across Base and Farcaster.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link

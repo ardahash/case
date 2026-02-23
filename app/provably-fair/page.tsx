@@ -49,7 +49,8 @@ export default function ProvablyFairPage() {
           <pre className="whitespace-pre-wrap rounded-2xl border border-border bg-muted/40 p-4 text-xs text-muted-foreground">
 {`{
   "openingId": "12345",
-  "rewardCbBtc": 0.000081,
+  "rewardAmount": 0.000081,
+  "rewardSymbol": "cbBTC",
   "rewardUsdEstimate": 4.91,
   "randomness": {
     "source": "onchain-entropy",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAccount, usePublicClient } from "wagmi";
 import { formatUnits, parseAbiItem } from "viem";
 import { caseSaleAbi } from "@/lib/abis/caseSale";
-import { contractAddresses, contractFlags } from "@/lib/contracts";
+import { CASE_DECIMALS, CBBTC_DECIMALS, contractAddresses, contractFlags } from "@/lib/contracts";
 import { getCaseType } from "@/config/caseTypes";
 import { formatDateTime, formatToken, formatUsd } from "@/lib/format";
 import { getExplorerTxUrl } from "@/lib/explorer";
@@ -18,17 +18,21 @@ type OnchainOpening = {
   id: string;
   caseTypeId: number;
   caseName: string;
-  rewardCbBtc: number | null;
+  rewardAmount: number | null;
+  rewardSymbol: string;
+  rewardDecimals: number;
   rewardUsd: number | null;
   claimed: boolean;
   rewarded: boolean;
   txHash: `0x${string}`;
   timestamp: number;
+  contractAddress: `0x${string}`;
 };
 
 type Opening = {
   buyer: `0x${string}`;
   caseTypeId: bigint;
+  rewardToken: `0x${string}`;
   rewardAmount: bigint;
   reservedAmount: bigint;
   btcUsdPrice: bigint;
@@ -47,13 +51,29 @@ export function RewardHistory() {
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: activeChain.id });
   const localOpenings = useOpeningsStore((state) => state.openings);
+  const caseTokenLower = contractAddresses.caseToken.toLowerCase();
+  const caseSaleAddress = contractAddresses.caseSale as `0x${string}`;
+  const dailyCaseSaleAddress = contractAddresses.dailyCaseSale as `0x${string}`;
+  const saleAddresses = useMemo(() => {
+    const addresses: `0x${string}`[] = [];
+    if (contractFlags.caseSaleConfigured) addresses.push(caseSaleAddress);
+    if (
+      contractFlags.dailyCaseSaleConfigured &&
+      dailyCaseSaleAddress.toLowerCase() !== caseSaleAddress.toLowerCase()
+    ) {
+      addresses.push(dailyCaseSaleAddress);
+    }
+    return addresses;
+  }, [caseSaleAddress, dailyCaseSaleAddress]);
 
   const [items, setItems] = useState<OnchainOpening[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [btcUsdDecimals, setBtcUsdDecimals] = useState(8);
 
-  const usingLocal = !contractFlags.caseSaleConfigured || !publicClient;
+  const usingLocal =
+    (!contractFlags.caseSaleConfigured && !contractFlags.dailyCaseSaleConfigured) ||
+    !publicClient;
 
   useEffect(() => {
     if (!address || usingLocal) return;
@@ -64,34 +84,40 @@ export function RewardHistory() {
       setError(null);
       try {
         const latestBlock = await publicClient.getBlockNumber();
-        const envStart = process.env.NEXT_PUBLIC_CASE_SALE_DEPLOY_BLOCK;
-        const fromBlock = envStart
-          ? BigInt(envStart)
-          : latestBlock > LOOKBACK_BLOCKS
-            ? latestBlock - LOOKBACK_BLOCKS
-            : 0n;
-
         const logsAccumulator: Awaited<ReturnType<typeof publicClient.getLogs>> = [];
 
-        for (let start = fromBlock; start <= latestBlock; ) {
-          const end =
-            start + LOG_CHUNK_SIZE - 1n > latestBlock
-              ? latestBlock
-              : start + LOG_CHUNK_SIZE - 1n;
-          try {
-            const chunk = await publicClient.getLogs({
-              address: contractAddresses.caseSale as `0x${string}`,
-              event: PURCHASE_EVENT,
-              args: { buyer: address as `0x${string}` },
-              fromBlock: start,
-              toBlock: end,
-            });
-            logsAccumulator.push(...chunk);
-          } catch (chunkError) {
-            console.error(chunkError);
-            throw chunkError;
+        for (const saleAddress of saleAddresses) {
+          const isDaily = saleAddress.toLowerCase() === dailyCaseSaleAddress.toLowerCase();
+          const envStart = isDaily
+            ? process.env.NEXT_PUBLIC_DAILY_CASE_SALE_DEPLOY_BLOCK
+            : process.env.NEXT_PUBLIC_CASE_SALE_DEPLOY_BLOCK;
+          const fromBlockRaw = envStart
+            ? BigInt(envStart)
+            : latestBlock > LOOKBACK_BLOCKS
+              ? latestBlock - LOOKBACK_BLOCKS
+              : 0n;
+          const fromBlock = fromBlockRaw > latestBlock ? latestBlock : fromBlockRaw;
+
+          for (let start = fromBlock; start <= latestBlock; ) {
+            const end =
+              start + LOG_CHUNK_SIZE - 1n > latestBlock
+                ? latestBlock
+                : start + LOG_CHUNK_SIZE - 1n;
+            try {
+              const chunk = await publicClient.getLogs({
+                address: saleAddress,
+                event: PURCHASE_EVENT,
+                args: { buyer: address as `0x${string}` },
+                fromBlock: start,
+                toBlock: end,
+              });
+              logsAccumulator.push(...chunk);
+            } catch (chunkError) {
+              console.error(chunkError);
+              throw chunkError;
+            }
+            start = end + 1n;
           }
-          start = end + 1n;
         }
 
         const logs = logsAccumulator;
@@ -99,6 +125,7 @@ export function RewardHistory() {
           args: { openingId?: bigint; caseTypeId?: bigint };
           transactionHash: `0x${string}`;
           blockNumber: bigint;
+          address: `0x${string}`;
         }>;
 
         if (typedLogs.length === 0) {
@@ -107,7 +134,9 @@ export function RewardHistory() {
         }
 
         const decimalsResult = await publicClient.readContract({
-          address: contractAddresses.caseSale as `0x${string}`,
+          address: contractFlags.caseSaleConfigured
+            ? caseSaleAddress
+            : dailyCaseSaleAddress,
           abi: caseSaleAbi,
           functionName: "btcUsdDecimals",
         });
@@ -135,7 +164,7 @@ export function RewardHistory() {
         const multicallResults = await publicClient.multicall({
           allowFailure: true,
           contracts: safeLogs.map((log) => ({
-            address: contractAddresses.caseSale as `0x${string}`,
+            address: log.address as `0x${string}`,
             abi: caseSaleAbi,
             functionName: "getOpening",
             args: [log.args.openingId],
@@ -153,28 +182,36 @@ export function RewardHistory() {
               ? (openingResult.result as unknown as Opening)
               : null;
 
-          const rewardCbBtc = opening?.rewarded
-            ? Number(formatUnits(opening.rewardAmount, 8))
+          const isCaseReward =
+            opening?.rewardToken &&
+            opening.rewardToken.toLowerCase() === caseTokenLower;
+          const tokenDecimals = isCaseReward ? CASE_DECIMALS : CBBTC_DECIMALS;
+          const displayDecimals = isCaseReward ? 4 : 8;
+          const rewardAmount = opening?.rewarded
+            ? Number(formatUnits(opening.rewardAmount, tokenDecimals))
             : null;
           const priceFromFeed =
-            opening?.btcUsdPrice && nextDecimals >= 0
+            !isCaseReward && opening?.btcUsdPrice && nextDecimals >= 0
               ? Number(opening.btcUsdPrice) / 10 ** nextDecimals
               : null;
           const rewardUsd =
-            rewardCbBtc !== null && priceFromFeed
-              ? rewardCbBtc * priceFromFeed
+            rewardAmount !== null && priceFromFeed
+              ? rewardAmount * priceFromFeed
               : null;
 
           return {
             id: openingId.toString(),
             caseTypeId,
             caseName: caseType?.name ?? `Case #${caseTypeId}`,
-            rewardCbBtc,
+            rewardAmount,
+            rewardSymbol: isCaseReward ? "CASE" : "cbBTC",
+            rewardDecimals: displayDecimals,
             rewardUsd,
             claimed: Boolean(opening?.claimed),
             rewarded: Boolean(opening?.rewarded),
             txHash: log.transactionHash,
             timestamp: blockTimeMap.get(log.blockNumber) ?? Date.now(),
+            contractAddress: log.address,
           };
         });
 
@@ -196,7 +233,7 @@ export function RewardHistory() {
     return () => {
       cancelled = true;
     };
-  }, [address, publicClient, usingLocal]);
+  }, [address, publicClient, usingLocal, saleAddresses, dailyCaseSaleAddress, caseSaleAddress]);
 
   useEffect(() => {
     if (!address || usingLocal || !publicClient || items.length === 0) return;
@@ -209,7 +246,7 @@ export function RewardHistory() {
         const results = await publicClient.multicall({
           allowFailure: true,
           contracts: pending.map((item) => ({
-            address: contractAddresses.caseSale as `0x${string}`,
+            address: item.contractAddress,
             abi: caseSaleAbi,
             functionName: "getOpening",
             args: [BigInt(item.id)],
@@ -226,23 +263,30 @@ export function RewardHistory() {
             const opening = result.result as unknown as Opening;
             if (!opening) return;
 
-            const rewardCbBtc = opening.rewarded
-              ? Number(formatUnits(opening.rewardAmount, 8))
+            const isCaseReward =
+              opening.rewardToken &&
+              opening.rewardToken.toLowerCase() === caseTokenLower;
+            const tokenDecimals = isCaseReward ? CASE_DECIMALS : CBBTC_DECIMALS;
+            const displayDecimals = isCaseReward ? 4 : 8;
+            const rewardAmount = opening.rewarded
+              ? Number(formatUnits(opening.rewardAmount, tokenDecimals))
               : null;
             const priceFromFeed =
-              opening.btcUsdPrice && btcUsdDecimals >= 0
+              !isCaseReward && opening.btcUsdPrice && btcUsdDecimals >= 0
                 ? Number(opening.btcUsdPrice) / 10 ** btcUsdDecimals
                 : null;
             const rewardUsd =
-              rewardCbBtc !== null && priceFromFeed
-                ? rewardCbBtc * priceFromFeed
+              rewardAmount !== null && priceFromFeed
+                ? rewardAmount * priceFromFeed
                 : null;
 
             const targetIndex = next.findIndex((entry) => entry.id === item.id);
             if (targetIndex === -1) return;
             next[targetIndex] = {
               ...next[targetIndex],
-              rewardCbBtc,
+              rewardAmount,
+              rewardSymbol: isCaseReward ? "CASE" : "cbBTC",
+              rewardDecimals: displayDecimals,
               rewardUsd,
               rewarded: Boolean(opening.rewarded),
               claimed: Boolean(opening.claimed),
@@ -269,12 +313,15 @@ export function RewardHistory() {
         id: opening.id,
         caseTypeId: opening.caseTypeId,
         caseName: opening.caseName,
-        rewardCbBtc: opening.rewardCbBtc,
+        rewardAmount: opening.rewardAmount,
+        rewardSymbol: opening.rewardSymbol,
+        rewardDecimals: opening.rewardDecimals,
         rewardUsd: opening.rewardUsd,
         claimed: false,
         rewarded: true,
         txHash: opening.txHash as `0x${string}`,
         timestamp: opening.timestamp,
+        contractAddress: caseSaleAddress,
       })),
     [localOpenings],
   );
@@ -315,9 +362,9 @@ export function RewardHistory() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-medium">{opening.caseName}</div>
                   <div className="flex items-center gap-2">
-                    {opening.rewardCbBtc !== null ? (
+                    {opening.rewardAmount !== null ? (
                       <Badge variant="secondary">
-                        {formatToken(opening.rewardCbBtc, "cbBTC", 8)}
+                        {formatToken(opening.rewardAmount ?? 0, opening.rewardSymbol, opening.rewardDecimals)}
                       </Badge>
                     ) : (
                       <Badge variant="outline">Pending</Badge>
@@ -332,8 +379,8 @@ export function RewardHistory() {
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>
-                    {opening.rewardCbBtc !== null
-                      ? formatToken(opening.rewardCbBtc, "cbBTC", 8)
+                    {opening.rewardAmount !== null
+                      ? formatToken(opening.rewardAmount, opening.rewardSymbol, opening.rewardDecimals)
                       : "Reward pending"}
                   </span>
                   <span>{formatDateTime(opening.timestamp)}</span>
