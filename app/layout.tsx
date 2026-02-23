@@ -14,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Case",
     description: "Open premium cases on Base.",
     other: {
+      "base:app_id": "699bdf3d10c3de142b5e3e06",
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
         imageUrl: farcasterConfig.miniapp.imageUrl || farcasterConfig.miniapp.heroImageUrl,
