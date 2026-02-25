@@ -86,5 +86,20 @@
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
   }
+
+  .case-swap {
+    color: hsl(var(--foreground));
+  }
+
+  .case-swap :is(input, select, textarea, [contenteditable="true"]) {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .case-swap :is(input, select, textarea)::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
 }
 

@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useEffect, useMemo, useState } from "react";
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function XCaseStakePanel() {
   const { writeContractAsync } = useWriteContract();
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [approveHash, setApproveHash] = useState<`0x${string}` | null>(null);
   const xCaseTokenAddress = contractAddresses.xCaseToken as `0x${string}`;
   const xCaseStakingAddress = contractAddresses.xCaseStaking as `0x${string}`;
 
@@ -44,6 +45,19 @@ export function XCaseStakePanel() {
     query: { enabled: Boolean(address) },
   });
 
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: xCaseTokenAddress,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: address ? [address, xCaseStakingAddress] : undefined,
+    query: { enabled: Boolean(address) },
+  });
+
+  const approveReceipt = useWaitForTransactionReceipt({
+    hash: approveHash ?? undefined,
+    query: { enabled: Boolean(approveHash), refetchInterval: 4000, refetchOnWindowFocus: true },
+  });
+
   const xCaseLabel = useMemo(() => {
     if (!xCaseBalance) return "0";
     return Number(formatUnits(xCaseBalance, CASE_DECIMALS)).toFixed(4);
@@ -68,9 +82,54 @@ export function XCaseStakePanel() {
     }
   }, [amount]);
 
+  const hasAllowance = useMemo(() => {
+    if (!parsedAmount || !allowance) return false;
+    return allowance >= parsedAmount;
+  }, [allowance, parsedAmount]);
+
+  useEffect(() => {
+    if (approveReceipt.isSuccess) {
+      refetchAllowance();
+      toast.success("xCASE approved.");
+    }
+  }, [approveReceipt.isSuccess, refetchAllowance]);
+
+  const handleApprove = async () => {
+    if (!parsedAmount || parsedAmount <= 0n) {
+      toast.error("Enter an amount to approve.");
+      return;
+    }
+
+    if (contractFlags.usingMockAddresses) {
+      toast.message("Approval simulated. Wire xCASE staking onchain.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const hash = await writeContractAsync({
+        address: xCaseTokenAddress,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [xCaseStakingAddress, parsedAmount],
+      });
+      setApproveHash(hash);
+      toast.message("Approval sent.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Approval failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleStake = async () => {
     if (!parsedAmount || parsedAmount <= 0n) {
       toast.error("Enter a stake amount.");
+      return;
+    }
+    if (!hasAllowance) {
+      toast.error("Approve xCASE first.");
       return;
     }
 
@@ -177,7 +236,10 @@ export function XCaseStakePanel() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button onClick={handleStake} disabled={isSubmitting || !address}>
+          <Button onClick={handleApprove} variant="outline" disabled={isSubmitting || !address || hasAllowance}>
+            {approveReceipt.isLoading ? "Approving..." : hasAllowance ? "Approved" : "Approve xCASE"}
+          </Button>
+          <Button onClick={handleStake} disabled={isSubmitting || !address || !hasAllowance}>
             Stake
           </Button>
           <Button onClick={handleUnstake} variant="secondary" disabled={isSubmitting || !address}>

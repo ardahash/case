@@ -50,7 +50,8 @@ export function CaseSwap() {
             are configured.
           </div>
         ) : (
-          <Swap className="w-full max-w-none">
+          <div className="case-swap">
+            <Swap className="w-full max-w-none">
             <SwapAmountInput
               label="Sell"
               swappableTokens={SWAPPABLE_TOKENS}
@@ -67,7 +68,8 @@ export function CaseSwap() {
             <SwapButton />
             <SwapMessage />
             <SwapToast />
-          </Swap>
+            </Swap>
+          </div>
         )}
       </CardContent>
     </Card>
