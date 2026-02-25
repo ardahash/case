@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { formatUnits, parseEventLogs, parseUnits } from "viem";
+import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { formatUnits, parseAbiItem, parseEventLogs, parseUnits } from "viem";
 import { toast } from "sonner";
 import sdk from "@farcaster/miniapp-sdk";
 import { caseSaleAbi } from "@/lib/abis/caseSale";
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useOpeningsStore } from "@/stores/useOpeningsStore";
 import { useCaseAvailability } from "@/hooks/useCaseAvailability";
 import { ModelViewer } from "@/components/shared/ModelViewer";
+import { activeChain } from "@/lib/chains";
 
 type RewardResponse = {
   openingId: string;
@@ -56,6 +57,7 @@ export default function OpenCasePage() {
   const params = useParams();
   const caseType = getCaseType(params.caseId as string);
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient({ chainId: activeChain.id });
   const { writeContractAsync } = useWriteContract();
   const addOpening = useOpeningsStore((state) => state.addOpening);
   const { available, soldOut } = useCaseAvailability(caseType ?? undefined);
@@ -139,6 +141,14 @@ export default function OpenCasePage() {
     },
   });
 
+  const purchaseEvent = useMemo(
+    () =>
+      parseAbiItem(
+        "event CasePurchased(address indexed buyer, uint256 indexed caseTypeId, uint256 indexed openingId, uint256 priceUSDC)",
+      ),
+    [],
+  );
+
   useEffect(() => {
     if (approveReceipt.isSuccess) {
       refetchAllowance();
@@ -163,6 +173,32 @@ export default function OpenCasePage() {
       if (matched !== undefined) {
         setOpeningId(matched as bigint);
         toast.success("Payment confirmed. Awaiting randomness...");
+        return;
+      }
+
+      const blockNumber = purchaseReceipt.data.blockNumber;
+      if (publicClient && blockNumber && address) {
+        publicClient
+          .getLogs({
+            address: caseSaleAddress,
+            event: purchaseEvent,
+            args: { buyer: address as `0x${string}` },
+            fromBlock: blockNumber,
+            toBlock: blockNumber,
+          })
+          .then((chainLogs) => {
+            const hit =
+              chainLogs.find((log) => log.transactionHash === purchaseHash) ??
+              chainLogs[0];
+            const opening = hit?.args?.openingId;
+            if (opening !== undefined) {
+              setOpeningId(opening as bigint);
+              toast.success("Payment confirmed. Awaiting randomness...");
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       }
     }
   }, [
@@ -171,7 +207,19 @@ export default function OpenCasePage() {
     purchaseHash,
     mockPaymentConfirmed,
     isLiveConfigured,
+    publicClient,
+    caseSaleAddress,
+    address,
+    purchaseEvent,
   ]);
+
+  useEffect(() => {
+    if (purchaseReceipt.isError) {
+      toast.error("Transaction failed or was rejected.");
+      setPurchaseHash(null);
+      setIsBusy(false);
+    }
+  }, [purchaseReceipt.isError]);
 
   const { data: openingData } = useReadContract({
     address: caseSaleAddress,
