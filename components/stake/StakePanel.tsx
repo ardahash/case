@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useEffect, useMemo, useState } from "react";
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function StakePanel() {
   const { writeContractAsync } = useWriteContract();
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [approveHash, setApproveHash] = useState<`0x${string}` | null>(null);
   const caseTokenAddress = contractAddresses.caseToken as `0x${string}`;
   const xCaseTokenAddress = contractAddresses.xCaseToken as `0x${string}`;
   const caseStakingAddress = contractAddresses.caseStaking as `0x${string}`;
@@ -35,6 +36,19 @@ export function StakePanel() {
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: { enabled: Boolean(address) },
+  });
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: caseTokenAddress,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: address ? [address, caseStakingAddress] : undefined,
+    query: { enabled: Boolean(address) },
+  });
+
+  const approveReceipt = useWaitForTransactionReceipt({
+    hash: approveHash ?? undefined,
+    query: { enabled: Boolean(approveHash), refetchInterval: 4000, refetchOnWindowFocus: true },
   });
 
   const walletLabel = useMemo(() => {
@@ -56,9 +70,47 @@ export function StakePanel() {
     }
   }, [amount]);
 
+  const hasAllowance = useMemo(() => {
+    if (!parsedAmount || !allowance) return false;
+    return allowance >= parsedAmount;
+  }, [allowance, parsedAmount]);
+
+  const handleApprove = async () => {
+    if (!parsedAmount || parsedAmount <= 0n) {
+      toast.error("Enter an amount to approve.");
+      return;
+    }
+
+    if (contractFlags.usingMockAddresses) {
+      toast.message("Approval simulated. Wire CaseStaking onchain.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const hash = await writeContractAsync({
+        address: caseTokenAddress,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [caseStakingAddress, parsedAmount],
+      });
+      setApproveHash(hash);
+      toast.message("Approval sent.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Approval failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleStake = async () => {
     if (!parsedAmount || parsedAmount <= 0n) {
       toast.error("Enter a stake amount.");
+      return;
+    }
+    if (!hasAllowance) {
+      toast.error("Approve CASE first.");
       return;
     }
 
@@ -112,6 +164,13 @@ export function StakePanel() {
     }
   };
 
+  useEffect(() => {
+    if (approveReceipt.isSuccess) {
+      refetchAllowance();
+      toast.success("CASE approved.");
+    }
+  }, [approveReceipt.isSuccess, refetchAllowance]);
+
   return (
     <Card className="glass">
       <CardHeader>
@@ -139,7 +198,10 @@ export function StakePanel() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button onClick={handleStake} disabled={isSubmitting || !address}>
+          <Button onClick={handleApprove} variant="outline" disabled={isSubmitting || !address || hasAllowance}>
+            {approveReceipt.isLoading ? "Approving..." : hasAllowance ? "Approved" : "Approve CASE"}
+          </Button>
+          <Button onClick={handleStake} disabled={isSubmitting || !address || !hasAllowance}>
             Stake
           </Button>
           <Button onClick={handleUnstake} variant="secondary" disabled={isSubmitting || !address}>
