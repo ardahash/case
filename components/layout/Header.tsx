@@ -7,6 +7,7 @@ import { WalletStatus } from "@/components/shared/WalletStatus";
 const navItems = [
   { label: "Store", href: "/" },
   { label: "Rewards", href: "/rewards" },
+  { label: "Stats", href: "/stats" },
   { label: "Stake", href: "/stake" },
   { label: "Based Room", href: "/based-room" },
   { label: "Legal", href: "/legal" },
