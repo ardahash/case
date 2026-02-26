@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "hardhat": "hardhat",
     "compile": "hardhat compile",
     "deploy:base": "hardhat run scripts/deploy.ts --network base",

@@ -1,5 +1,6 @@
 import { RewardHistory } from "@/components/reward/RewardHistory";
 import { RewardsIdentity } from "@/components/reward/RewardsIdentity";
+import { GrowthDashboard } from "@/components/growth/GrowthDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RewardsPage() {
@@ -14,6 +15,8 @@ export default function RewardsPage() {
           Track your case openings and CASE / cbBTC rewards. History is indexed live from the CaseSale contract.
         </p>
       </div>
+
+      <GrowthDashboard />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
         <RewardHistory />

@@ -11,9 +11,11 @@ import {
 import { useAccount } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { activeChain } from "@/lib/chains";
+import { useMiniApp } from "@/app/providers/MiniAppProvider";
 
 export function RewardsIdentity() {
   const { address } = useAccount();
+  const { farcasterUser, quickAuthUser, isMiniApp } = useMiniApp();
 
   const { data: resolvedName, isLoading: isNameLoading } = useName({
     address,
@@ -60,8 +62,24 @@ export function RewardsIdentity() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Farcaster</span>
-                <span className="max-w-[60%] truncate font-medium">Not set</span>
+                <span className="max-w-[60%] truncate font-medium">
+                  {farcasterUser?.username
+                    ? `@${farcasterUser.username}`
+                    : quickAuthUser?.fid
+                      ? `fid:${quickAuthUser.fid}`
+                      : isMiniApp
+                        ? "Detected (profile unavailable)"
+                        : "Not detected"}
+                </span>
               </div>
+              {(farcasterUser?.fid || quickAuthUser?.fid) && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">FID</span>
+                  <span className="max-w-[60%] truncate font-medium">
+                    {farcasterUser?.fid ?? quickAuthUser?.fid}
+                  </span>
+                </div>
+              )}
             </div>
           </>
         )}

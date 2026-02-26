@@ -5,6 +5,7 @@ import { useState } from "react";
 import { WalletStatus } from "@/components/shared/WalletStatus";
 
 const navItems = [
+  { label: "Daily Mini", href: "/open/3?src=farcaster&entry=nav" },
   { label: "Store", href: "/" },
   { label: "Rewards", href: "/rewards" },
   { label: "Stats", href: "/stats" },

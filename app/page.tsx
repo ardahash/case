@@ -11,15 +11,21 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { chainLabel, isTestnet } from "@/lib/chains";
 import { useCaseAvailability } from "@/hooks/useCaseAvailability";
+import { GrowthDashboard } from "@/components/growth/GrowthDashboard";
 
 export default function Home() {
-  const primaryCase = caseTypes[0];
-  const { available, soldOut, isLoading } = useCaseAvailability(primaryCase);
-  const heroLabel = soldOut ? "SOLD OUT" : "Buy & Open";
-  const heroHref = soldOut ? "#" : `/open/${primaryCase.id}`;
+  const dailyCase = caseTypes.find((caseType) => caseType.priceUSDC === 0) ?? caseTypes[0];
+  const paidCase = caseTypes.find((caseType) => caseType.priceUSDC > 0 && caseType.enabled) ?? caseTypes[0];
+  const { available, soldOut, isLoading } = useCaseAvailability(dailyCase);
+  const heroLabel = soldOut ? "SOLD OUT" : "Open Free Daily Mini";
+  const heroHref = soldOut ? "#" : `/open/${dailyCase.id}?src=farcaster&entry=daily`;
   const heroDisabled = soldOut;
   const heroInventory =
-    available !== null ? `${available.toString()} cases in stock` : isLoading ? "Checking inventory..." : null;
+    available !== null
+      ? `${available.toString()} mini cases in stock`
+      : isLoading
+        ? "Checking inventory..."
+        : null;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -37,11 +43,11 @@ export default function Home() {
               {isTestnet ? `${chainLabel} Preview` : `${chainLabel} Ready`}
             </Badge>
             <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-              Open cases, get Bitcoin!
+              Open a free daily mini, stack points, earn Bitcoin.
             </h1>
             <p className="text-lg text-muted-foreground">
-              Buy a case using USDC, watch the case open,
-              reveal CASE or cbBTC rewards, and track your history across Base and Farcaster.
+              Start with a free daily open on Farcaster, build your streak and offchain points for future CASE
+              airdrops, then level up to paid cases for bigger rewards.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -53,18 +59,32 @@ export default function Home() {
               >
                 {heroLabel}
               </Link>
+              <Link href={`/open/${paidCase.id}`} className={buttonVariants({ variant: "outline" })}>
+                Open Premium Case
+              </Link>
               <Link href="/provably-fair" className={buttonVariants({ variant: "outline" })}>
                 Provably Fair
               </Link>
             </div>
             <div className="text-sm text-muted-foreground">
-              Transparent fee model. No hidden house edge. Currently:
+              Daily mini drives streaks + referral growth. Transparent fee model. No hidden house edge. Currently:
               {heroInventory ? ` ${heroInventory}.` : ""}
             </div>
           </div>
         </section>
 
         <NetworkGuard />
+
+        <section className="flex flex-col gap-6">
+          <div>
+            <h2 className="text-2xl font-semibold">Points, Streaks & Community</h2>
+            <p className="text-sm text-muted-foreground">
+              Offchain points are now tracked for future CASE airdrops (mini opens, paid opens, streaks, referrals,
+              shares).
+            </p>
+          </div>
+          <GrowthDashboard compact />
+        </section>
 
         <section className="flex flex-col gap-6">
           <div className="flex items-center justify-between">

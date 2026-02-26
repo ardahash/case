@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { formatUnits, parseAbiItem, parseEventLogs, parseUnits } from "viem";
@@ -22,6 +22,8 @@ import { useOpeningsStore } from "@/stores/useOpeningsStore";
 import { useCaseAvailability } from "@/hooks/useCaseAvailability";
 import { ModelViewer } from "@/components/shared/ModelViewer";
 import { activeChain } from "@/lib/chains";
+import { useMiniApp } from "@/app/providers/MiniAppProvider";
+import { buildGrowthActor, getStoredReferral, postTrackEvent } from "@/lib/growth/client";
 
 type RewardResponse = {
   openingId: string;
@@ -55,8 +57,10 @@ const FLOW_STALE_MS = 30 * 60 * 1000;
 
 export default function OpenCasePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const caseType = getCaseType(params.caseId as string);
   const { address, isConnected } = useAccount();
+  const { farcasterUser, quickAuthUser, isMiniApp } = useMiniApp();
   const publicClient = usePublicClient({ chainId: activeChain.id });
   const { writeContractAsync } = useWriteContract();
   const addOpening = useOpeningsStore((state) => state.addOpening);
@@ -80,6 +84,7 @@ export default function OpenCasePage() {
   const [openingId, setOpeningId] = useState<bigint | null>(null);
   const [flowLoaded, setFlowLoaded] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [hasTrackedGrowthCompletion, setHasTrackedGrowthCompletion] = useState(false);
   const isLiveConfigured = isFreeCase
     ? contractFlags.dailyCaseSaleConfigured
     : contractFlags.caseSaleConfigured;
@@ -91,6 +96,32 @@ export default function OpenCasePage() {
     const owner = (address ?? "guest").toLowerCase();
     return `case-open-flow:v${FLOW_STORAGE_VERSION}:${flowMode}:${caseType.id}:${owner}`;
   }, [caseType, address, flowMode, isLiveConfigured]);
+
+  const growthActor = useMemo(
+    () =>
+      buildGrowthActor({
+        fid: quickAuthUser?.fid ?? farcasterUser?.fid ?? null,
+        address: address ?? null,
+        username: farcasterUser?.username ?? null,
+        displayName: farcasterUser?.displayName ?? null,
+        pfpUrl: farcasterUser?.pfpUrl ?? null,
+        source:
+          (isMiniApp ? "farcaster-miniapp" : null) ??
+          searchParams.get("src") ??
+          getStoredReferral()?.source ??
+          "web",
+      }),
+    [
+      address,
+      farcasterUser?.displayName,
+      farcasterUser?.fid,
+      farcasterUser?.pfpUrl,
+      farcasterUser?.username,
+      isMiniApp,
+      quickAuthUser?.fid,
+      searchParams,
+    ],
+  );
 
   const steps = useMemo(() => {
     if (isFreeCase) {
@@ -330,6 +361,7 @@ export default function OpenCasePage() {
     setReward(null);
     setIsVideoDone(false);
     setHasRecorded(false);
+    setHasTrackedGrowthCompletion(false);
   }, [storageKey]);
 
   useEffect(() => {
@@ -427,6 +459,54 @@ export default function OpenCasePage() {
     }
   }, [reward, isVideoDone, hasRecorded, purchaseHash, addOpening, caseType]);
 
+  useEffect(() => {
+    if (
+      !reward ||
+      !isVideoDone ||
+      hasTrackedGrowthCompletion ||
+      !purchaseHash ||
+      !caseType
+    ) {
+      return;
+    }
+
+    const referral = getStoredReferral();
+    void postTrackEvent({
+      type: "opening_completed",
+      actor: growthActor,
+      referrerFid: referral?.referrerFid ?? null,
+      metadata: {
+        caseId: caseType.id,
+        isFreeCase,
+        route: `/open/${caseType.id}`,
+      },
+      opening: {
+        openingId: reward.openingId,
+        txHash: purchaseHash,
+        caseTypeId: caseType.id,
+        caseName: caseType.name,
+        isFreeCase,
+        casePriceUSDC: caseType.priceUSDC,
+        rewardSymbol: reward.rewardSymbol,
+        rewardAmount: reward.rewardAmount,
+        rewardUsd: reward.rewardUsd,
+      },
+    }).then((result) => {
+      if (result?.points && !result.duplicate) {
+        toast.success(`Points updated: ${result.points.toLocaleString()} total`);
+      }
+    });
+    setHasTrackedGrowthCompletion(true);
+  }, [
+    reward,
+    isVideoDone,
+    hasTrackedGrowthCompletion,
+    purchaseHash,
+    caseType,
+    growthActor,
+    isFreeCase,
+  ]);
+
   const fetchReward = async (txHash: string) => {
     if (!caseType) return;
     try {
@@ -494,6 +574,19 @@ export default function OpenCasePage() {
       return;
     }
 
+    const referral = getStoredReferral();
+    void postTrackEvent({
+      type: "open_start",
+      actor: growthActor,
+      referrerFid: referral?.referrerFid ?? null,
+      metadata: {
+        caseId: caseType.id,
+        isFreeCase,
+        priceUSDC: caseType.priceUSDC,
+        source: searchParams.get("src") ?? (isMiniApp ? "farcaster-miniapp" : "web"),
+      },
+    });
+
     if (!isLiveConfigured) {
       const mockHash = (`0x${crypto.getRandomValues(new Uint8Array(32)).reduce(
         (acc, value) => acc + value.toString(16).padStart(2, "0"),
@@ -548,23 +641,55 @@ export default function OpenCasePage() {
     }
   };
 
-  const handleShareReward = async () => {
-    if (!reward || !caseType) return;
-    const shareUrl =
+  const buildShareUrl = (campaign: string) => {
+    const base =
       typeof window !== "undefined"
-        ? `${window.location.origin}/open/${caseType.id}`
-        : process.env.NEXT_PUBLIC_URL || "";
-    const rewardLabel = formatToken(reward.rewardAmount, reward.rewardSymbol, reward.rewardDecimals);
-    const usdLabel = reward.rewardUsd !== null ? ` (~${formatUsd(reward.rewardUsd)})` : "";
-    const shareText = `I opened ${caseType.name} and got ${rewardLabel}${usdLabel}.`;
+        ? new URL(`/open/${caseType?.id ?? ""}`, window.location.origin)
+        : new URL(
+            `/open/${caseType?.id ?? ""}`,
+            process.env.NEXT_PUBLIC_URL || "http://localhost:3000",
+          );
+    base.searchParams.set("src", "farcaster");
+    base.searchParams.set("campaign", campaign);
+    if (growthActor.fid) {
+      base.searchParams.set("ref_fid", String(growthActor.fid));
+    }
+    return base.toString();
+  };
+
+  const shareMessage = async ({
+    title,
+    text,
+    url,
+    shareType,
+  }: {
+    title: string;
+    text: string;
+    url: string;
+    shareType: "reward" | "challenge";
+  }) => {
+    await postTrackEvent({
+      type: "share_intent",
+      actor: growthActor,
+      metadata: {
+        caseId: caseType?.id ?? -1,
+        isFreeCase,
+        shareType,
+      },
+    });
 
     try {
       setIsSharing(true);
       const inMiniApp = await sdk.isInMiniApp();
       if (inMiniApp) {
         await sdk.actions.composeCast({
-          text: shareText,
-          embeds: shareUrl ? [shareUrl] : undefined,
+          text,
+          embeds: url ? [url] : undefined,
+        });
+        void postTrackEvent({
+          type: "share_composer_opened",
+          actor: growthActor,
+          metadata: { caseId: caseType?.id ?? -1, isFreeCase, shareType },
         });
         toast.success("Share composer opened.");
         return;
@@ -578,9 +703,14 @@ export default function OpenCasePage() {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: "Case Reward",
-          text: shareText,
-          url: shareUrl || undefined,
+          title,
+          text,
+          url: url || undefined,
+        });
+        void postTrackEvent({
+          type: "share_native_opened",
+          actor: growthActor,
+          metadata: { caseId: caseType?.id ?? -1, isFreeCase, shareType },
         });
         return;
       } catch (error) {
@@ -590,7 +720,12 @@ export default function OpenCasePage() {
 
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       try {
-        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`.trim());
+        await navigator.clipboard.writeText(`${text} ${url}`.trim());
+        void postTrackEvent({
+          type: "share_copied",
+          actor: growthActor,
+          metadata: { caseId: caseType?.id ?? -1, isFreeCase, shareType },
+        });
         toast.success("Share text copied.");
         return;
       } catch (error) {
@@ -599,6 +734,36 @@ export default function OpenCasePage() {
     }
 
     toast.error("Share is not available on this device.");
+  };
+
+  const handleShareChallenge = async () => {
+    if (!caseType) return;
+    const shareUrl = buildShareUrl(isFreeCase ? "daily-mini-share" : "case-challenge");
+    const shareText = isFreeCase
+      ? `I'm opening my free Daily Mini on Case. Try yours and start stacking points for the CASE airdrop.`
+      : `I'm opening ${caseType.name} on Case. Try your luck and start stacking points for the CASE airdrop.`;
+
+    await shareMessage({
+      title: "Case Challenge",
+      text: shareText,
+      url: shareUrl,
+      shareType: "challenge",
+    });
+  };
+
+  const handleShareReward = async () => {
+    if (!reward || !caseType) return;
+    const shareUrl = buildShareUrl(isFreeCase ? "daily-mini-reward" : "reward-share");
+    const rewardLabel = formatToken(reward.rewardAmount, reward.rewardSymbol, reward.rewardDecimals);
+    const usdLabel = reward.rewardUsd !== null ? ` (~${formatUsd(reward.rewardUsd)})` : "";
+    const shareText = `I opened ${caseType.name} and got ${rewardLabel}${usdLabel}. Start with the free daily mini and stack CASE airdrop points.`;
+
+    await shareMessage({
+      title: "Case Reward",
+      text: shareText,
+      url: shareUrl,
+      shareType: "reward",
+    });
   };
 
   if (!caseType) {
@@ -738,6 +903,9 @@ export default function OpenCasePage() {
                         : isFreeCase
                           ? "Open Free Case"
                           : `Pay ${caseType.priceUSDC} USDC`}
+              </Button>
+              <Button onClick={handleShareChallenge} variant="outline" disabled={isSharing || !caseType}>
+                {isSharing ? "Opening Share..." : isFreeCase ? "Share Daily Challenge" : "Challenge a Friend"}
               </Button>
             </div>
 
