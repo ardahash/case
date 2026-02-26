@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, Suspense, useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
@@ -24,7 +24,9 @@ export function Providers({ children }: { children: ReactNode }) {
         >
           <MiniAppProvider>
             <MiniKitReady />
-            <GrowthTracker />
+            <Suspense fallback={null}>
+              <GrowthTracker />
+            </Suspense>
             {children}
           </MiniAppProvider>
         </OnchainKitProvider>

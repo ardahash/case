@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern .next --ignore-pattern node_modules --ignore-pattern 'node_modules_stale_*/**'",
     "hardhat": "hardhat",
     "compile": "hardhat compile",
     "deploy:base": "hardhat run scripts/deploy.ts --network base",
